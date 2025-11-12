@@ -17,6 +17,21 @@ class ApiService {
   static List<Map<String, dynamic>> _conferentesCache = [];
   static List<Map<String, dynamic>> _categoriasCache = [];
 
+  // === ESTÁ LOGADO? ===
+  static bool get estaLogado => conferenteId != null;
+
+  // === CARREGAR CONFERENTE DO CACHE ===
+  static Future<void> carregarConferenteCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getInt('conferente_id');
+    final nome = prefs.getString('conferente_nome');
+
+    if (id != null && nome != null) {
+      conferenteId = id;
+      conferenteNome = nome;
+    }
+  }
+
   // === CARREGAR ESTOQUE ===
   static Future<List<Produto>> getEstoque() async {
     try {
@@ -141,7 +156,6 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/selecionar_conferente.php'),
         headers: {'Content-Type': 'application/json'},
-
         body: json.encode({'id': id}),
       ).timeout(_timeout);
 
@@ -160,7 +174,7 @@ class ApiService {
     }
   }
 
-  // === VERIFICAR LOGIN ===
+  // === VERIFICAR LOGIN (LEGADO - opcional) ===
   static Future<bool> checkLogin() async {
     if (conferenteId != null && conferenteNome != null) return true;
 
@@ -186,7 +200,4 @@ class ApiService {
     _conferentesCache.clear();
     _categoriasCache.clear();
   }
-
-  // === ESTÁ LOGADO? ===
-  static bool get estaLogado => conferenteId != null;
 }

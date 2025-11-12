@@ -219,7 +219,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator(color: primaryOrange))
                 : lojaSelecionadaId == null
-                    ? Center(child: Text('Selecione uma loja para começar', style: GoogleFonts.inter()))
+                    ? Center(child: Text('* EM PRODUÇÃO *', style: GoogleFonts.inter()))
                     : RefreshIndicator(
                         onRefresh: _carregarDados,
                         child: ListView.builder(
