@@ -1,7 +1,8 @@
-// home_screen.dart - VERSÃO CORRIGIDA (FUNCIONA EM RELEASE)
+// home_screen.dart - VERSÃO CORRIGIDA PARA ANDROID APK
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'api_service.dart';
 import 'produto.dart';
 
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Map<String, List<Produto>> categoriasMap = {};
   final Map<int, TextEditingController> _fardosControllers = {};
   final Map<int, TextEditingController> _avulsasControllers = {};
+  final Map<int, Timer?> _debounceTimers = {}; // NOVO: Timer para debounce
   int totalFardos = 0;
   int totalAvulsas = 0;
   bool isLoading = true;
@@ -76,6 +78,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _shimmerController.dispose();
     _pulseController.dispose();
+    // NOVO: Cancelar todos os timers
+    _debounceTimers.values.forEach((timer) => timer?.cancel());
+    _debounceTimers.clear();
     _fardosControllers.values.forEach((c) => c.dispose());
     _avulsasControllers.values.forEach((c) => c.dispose());
     super.dispose();
@@ -138,8 +143,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // -------------------------------------------------
-  // ALTERAR QUANTIDADE (CORRIGIDA)
+  // ALTERAR QUANTIDADE COM DEBOUNCE (NOVA VERSÃO)
   // -------------------------------------------------
+  void _onQuantidadeChanged(int id, String tipo, String value) {
+    // Cancelar timer anterior se existir
+    _debounceTimers[id]?.cancel();
+    
+    // Criar novo timer
+    _debounceTimers[id] = Timer(const Duration(milliseconds: 800), () {
+      final novoValor = int.tryParse(value.isEmpty ? '0' : value) ?? 0;
+      _alterar(id, tipo, novoValor.clamp(0, 999));
+    });
+  }
+
   Future<void> _alterar(int id, String tipo, int novoValor) async {
     final produto = produtos.firstWhere((p) => p.id == id);
     final antigo = tipo == 'f' ? produto.fardos : produto.avulsas;
@@ -163,8 +179,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (mounted) {
         _showErrorSnackbar('Falha ao salvar alteração');
         setState(() {
-          if (tipo == 'f') produto.fardos = antigo;
-          else produto.avulsas = antigo;
+          if (tipo == 'f') {
+            produto.fardos = antigo;
+            _fardosControllers[id]?.text = antigo == 0 ? '' : antigo.toString();
+          } else {
+            produto.avulsas = antigo;
+            _avulsasControllers[id]?.text = antigo == 0 ? '' : antigo.toString();
+          }
         });
       }
     }
@@ -1174,164 +1195,161 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // -------------------------------------------------
-  // CAMPO EDITÁVEL MODERNO
+  // CAMPO EDITÁVEL MODERNO - VERSÃO CORRIGIDA PARA ANDROID
   // -------------------------------------------------
   Widget _buildQuantidadeEditavelModerna({
-  required String label,
-  required TextEditingController controller,
-  required int produtoId,
-  required String tipo,
-  required Color color,
-  required Color secondaryColor,
-}) {
-  final isSmall = MediaQuery.of(context).size.width < 400;
-  final padding = isSmall ? 16.0 : 20.0;
-  final fontSizeLabel = isSmall ? 11.0 : 12.0;
-  final fontSizeValue = isSmall ? 34.0 : 38.0;
+    required String label,
+    required TextEditingController controller,
+    required int produtoId,
+    required String tipo,
+    required Color color,
+    required Color secondaryColor,
+  }) {
+    final isSmall = MediaQuery.of(context).size.width < 400;
+    final padding = isSmall ? 16.0 : 20.0;
+    final fontSizeLabel = isSmall ? 11.0 : 12.0;
+    final fontSizeValue = isSmall ? 34.0 : 38.0;
 
-  final focusNode = FocusNode();
-  final currentValue = int.tryParse(controller.text) ?? 0;
-  final isLow = currentValue > 0 && currentValue <= (label == 'FARDOS' ? 2 : 5);
-  final isZero = currentValue == 0;
+    final currentValue = int.tryParse(controller.text) ?? 0;
+    final isLow = currentValue > 0 && currentValue <= (label == 'FARDOS' ? 2 : 5);
+    final isZero = currentValue == 0;
 
-  return Container(
-    padding: EdgeInsets.all(padding * _scaleFactor),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          lightGray,
-          lightGray.withOpacity(0.5),
+    return Container(
+      padding: EdgeInsets.all(padding * _scaleFactor),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            lightGray,
+            lightGray.withOpacity(0.5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isLow
+              ? warningOrange.withOpacity(0.4)
+              : isZero
+                  ? borderGray.withOpacity(0.5)
+                  : color.withOpacity(0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isLow
+                ? warningOrange.withOpacity(0.1)
+                : color.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: isLow
-            ? warningOrange.withOpacity(0.4)
-            : isZero
-                ? borderGray.withOpacity(0.5)
-                : color.withOpacity(0.3),
-        width: 2,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: isLow
-              ? warningOrange.withOpacity(0.1)
-              : color.withOpacity(0.08),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 12 * _scaleFactor,
-            vertical: 6 * _scaleFactor,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [color, secondaryColor],
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12 * _scaleFactor,
+              vertical: 6 * _scaleFactor,
             ),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [color, secondaryColor],
               ),
-            ],
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: fontSizeLabel * _scaleFactor,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+              ),
+            ),
           ),
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: fontSizeLabel * _scaleFactor,
+          
+          SizedBox(height: 16 * _scaleFactor),
+          
+          // CORREÇÃO PRINCIPAL: TextField simplificado
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12 * _scaleFactor,
+              vertical: 8 * _scaleFactor,
+            ),
+            decoration: BoxDecoration(
               color: Colors.white,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.0,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: borderGray.withOpacity(0.5),
+                width: 1.5,
+              ),
             ),
-          ),
-        ),
-        
-        SizedBox(height: 16 * _scaleFactor),
-        
-        // CORREÇÃO PRINCIPAL: Removido GestureDetector e simplificado
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 12 * _scaleFactor,
-            vertical: 8 * _scaleFactor,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: borderGray.withOpacity(0.5),
-              width: 1.5,
-            ),
-          ),
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: fontSizeValue * _scaleFactor,
-              fontWeight: FontWeight.w900,
-              color: isZero ? textLight : color,
-              height: 1,
-            ),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-              hintText: '0',
-              hintStyle: GoogleFonts.poppins(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
                 fontSize: fontSizeValue * _scaleFactor,
                 fontWeight: FontWeight.w900,
-                color: textLight.withOpacity(0.3),
+                color: isZero ? textLight : color,
+                height: 1,
               ),
-            ),
-            // CORREÇÃO: onEditingComplete em vez de onSubmitted
-            onEditingComplete: () {
-              final novo = int.tryParse(controller.text.isEmpty ? '0' : controller.text) ?? 0;
-              _alterar(produtoId, tipo, novo.clamp(0, 999));
-              focusNode.unfocus();
-            },
-            // CORREÇÃO: onTapOutside apenas desfoca, sem salvar
-            onTapOutside: (_) {
-              focusNode.unfocus();
-            },
-          ),
-        ),
-        
-        SizedBox(height: 12 * _scaleFactor),
-        
-        if (isLow)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.trending_down_rounded,
-                size: 14 * _scaleFactor,
-                color: warningOrange,
-              ),
-              SizedBox(width: 4 * _scaleFactor),
-              Text(
-                'Estoque baixo',
-                style: GoogleFonts.inter(
-                  fontSize: 10 * _scaleFactor,
-                  fontWeight: FontWeight.w700,
-                  color: warningOrange,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                hintText: '0',
+                hintStyle: GoogleFonts.poppins(
+                  fontSize: fontSizeValue * _scaleFactor,
+                  fontWeight: FontWeight.w900,
+                  color: textLight.withOpacity(0.3),
                 ),
               ),
-            ],
+              // CORREÇÃO: Usar onChanged com debounce
+              onChanged: (value) {
+                _onQuantidadeChanged(produtoId, tipo, value);
+              },
+              // CORREÇÃO: Permitir edição livre sem interferência
+              enableInteractiveSelection: true,
+              autocorrect: false,
+              enableSuggestions: false,
+            ),
           ),
-      ],
-    ),
-  );
-}
+          
+          SizedBox(height: 12 * _scaleFactor),
+          
+          if (isLow)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.trending_down_rounded,
+                  size: 14 * _scaleFactor,
+                  color: warningOrange,
+                ),
+                SizedBox(width: 4 * _scaleFactor),
+                Text(
+                  'Estoque baixo',
+                  style: GoogleFonts.inter(
+                    fontSize: 10 * _scaleFactor,
+                    fontWeight: FontWeight.w700,
+                    color: warningOrange,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
   // -------------------------------------------------
   // SHIMMER
   // -------------------------------------------------

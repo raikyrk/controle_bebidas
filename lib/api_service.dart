@@ -200,4 +200,49 @@ class ApiService {
     _conferentesCache.clear();
     _categoriasCache.clear();
   }
-}
+
+  // === EXPEDIR PARA LOJA (NOVA FUNÇÃO) ===
+  static Future<void> expedirParaLoja(int lojaId, Map<int, Map<String, int>> carrinho) async {
+  if (carrinho.isEmpty) throw Exception('Carrinho vazio');
+  if (conferenteId == null) throw Exception('Conferente não logado');
+
+  final itens = carrinho.entries.map((e) {
+    return {
+      'produto_id': e.key,
+      'fardos': e.value['f'] ?? 0,
+      'avulsas': e.value['a'] ?? 0,
+    };
+  }).toList();
+
+  final payload = {
+    'loja_id': lojaId,
+    'conferente_id': conferenteId!,           // ← ESSA LINHA ESTAVA FALTANDO
+    'conferente_nome': conferenteNome ?? '',  // ← OPCIONAL, mas recomendado
+    'itens': itens,
+    'origem': 'app'                           // ← bom ter também
+  };
+
+  print('ENVIANDO EXPEDIÇÃO → $payload');
+
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/expedir/expedir.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(payload),
+    ).timeout(_timeout);
+
+    print('RESPOSTA DO SERVIDOR: ${response.body}');
+
+    if (response.statusCode != 200) {
+      throw Exception('Erro de conexão: HTTP ${response.statusCode}');
+    }
+
+    final result = json.decode(response.body);
+    if (!(result['success'] ?? false)) {
+      throw Exception(result['error'] ?? 'Falha ao expedir');
+    }
+  } catch (e) {
+    print('Erro na expedição: $e');
+    rethrow;
+  }
+}}
