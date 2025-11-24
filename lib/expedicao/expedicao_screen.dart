@@ -30,7 +30,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // CORES - Paleta sofisticada
+
   static const Color primaryOrange = Color(0xFFFF6B35);
   static const Color lightOrange = Color(0xFFFF8C42);
   static const Color deepOrange = Color(0xFFE85A2D);
@@ -42,7 +42,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   static const Color successGreen = Color(0xFF27AE60);
   static const Color accentBlue = Color(0xFF3498DB);
 
-  // Ícones para as lojas com melhor mapeamento
+
   final Map<String, IconData> lojaIcons = {
     'Silviano': Icons.storefront_rounded,
     'Prudente': Icons.shopping_bag_rounded,
@@ -62,7 +62,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     'Lagoa Santa': Icons.store_outlined,
   };
 
-  // Cores variadas para cada loja (visual mais dinâmico)
+
   final List<List<Color>> lojaGradients = [
     [Color(0xFFFF6B35), Color(0xFFFF8C42)],
     [Color(0xFF3498DB), Color(0xFF5DADE2)],
@@ -78,13 +78,13 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   void initState() {
     super.initState();
     
-    // Animação do FAB
+
     _fabAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
 
-    // Animação de entrada de página
+
     _pageAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -166,7 +166,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
 
-      // Ordena por ID crescente
+
       lojas.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
 
       return lojas;
@@ -175,13 +175,13 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     debugPrint('Erro ao carregar lojas: $e');
   }
 
-  // Fallback ordenado (caso API falhe)
+
   final fallback = <Map<String, dynamic>>[];
   final nomes = ['Silviano','Prudente','Belvedere','Pampulha','Mangabeiras','Delivery','Castelo','Barreiro','Eldorado','Silva Lobo','Buritis','Cidade Nova','Afonsos','Ouro Preto','Sion','Lagoa Santa'];
   for (int i = 0; i < nomes.length; i++) {
     fallback.add({'id': i + 1, 'nome': nomes[i]});
   }
-  return fallback; // já vem ordenado naturalmente
+  return fallback; 
 }
 
   void _adicionarComLimite(int produtoId, String tipo) {
@@ -202,12 +202,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
 
     CarrinhoExpedicao.adicionar(produtoId, tipo);
     
-    // Feedback háptico leve (vibração)
-    // HapticFeedback.lightImpact(); // Descomente se quiser feedback háptico
+
     
     setState(() {});
-    
-    // Anima o FAB se for o primeiro item
+
     if (CarrinhoExpedicao.totalItens == 1) {
       _fabAnimationController.reset();
       _fabAnimationController.forward();
@@ -327,10 +325,13 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
               ),
             )
           : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
   Widget _buildHeader() {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -346,14 +347,17 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 32 : 24, 
+        vertical: isTablet ? 28 : 24,
+      ),
       child: Row(
         children: [
           // Ícone principal com animação
           Hero(
             tag: 'expedicao_icon',
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(isTablet ? 16 : 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [primaryOrange, lightOrange],
@@ -369,7 +373,11 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   ),
                 ],
               ),
-              child: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 32),
+              child: Icon(
+                Icons.local_shipping_rounded, 
+                color: Colors.white, 
+                size: isTablet ? 36 : 32,
+              ),
             ),
           ),
           const SizedBox(width: 18),
@@ -381,7 +389,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   'Expedição',
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.w900,
-                    fontSize: 26,
+                    fontSize: isTablet ? 30 : 26,
                     color: darkText,
                     letterSpacing: -0.5,
                   ),
@@ -389,7 +397,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                 if (lojaSelecionadaNome != null)
                   Container(
                     margin: const EdgeInsets.only(top: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isTablet ? 14 : 12, 
+                      vertical: isTablet ? 8 : 6,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -408,14 +419,14 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       children: [
                         Icon(
                           lojaIcons[lojaSelecionadaNome] ?? Icons.store_rounded,
-                          size: 16,
+                          size: isTablet ? 18 : 16,
                           color: primaryOrange,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           lojaSelecionadaNome!,
                           style: GoogleFonts.inter(
-                            fontSize: 14,
+                            fontSize: isTablet ? 16 : 14,
                             color: primaryOrange,
                             fontWeight: FontWeight.w700,
                           ),
@@ -442,7 +453,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   _pageAnimationController.forward();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 20 : 18, 
+                    vertical: isTablet ? 14 : 12,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -455,14 +469,18 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.swap_horiz_rounded, color: primaryOrange, size: 20),
+                      Icon(
+                        Icons.swap_horiz_rounded, 
+                        color: primaryOrange, 
+                        size: isTablet ? 22 : 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Trocar',
                         style: GoogleFonts.inter(
                           color: primaryOrange,
                           fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                          fontSize: isTablet ? 16 : 14,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -545,6 +563,8 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   }
 
   Widget _buildSelecaoLoja() {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
@@ -552,7 +572,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              padding: EdgeInsets.fromLTRB(
+                isTablet ? 32 : 24, 
+                isTablet ? 36 : 32, 
+                isTablet ? 32 : 24, 
+                isTablet ? 28 : 24,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -567,13 +592,17 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.storefront_rounded, size: 40, color: primaryOrange),
+                    child: Icon(
+                      Icons.storefront_rounded, 
+                      size: isTablet ? 48 : 40, 
+                      color: primaryOrange,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Selecione a Loja',
                     style: GoogleFonts.inter(
-                      fontSize: 32,
+                      fontSize: isTablet ? 36 : 32,
                       fontWeight: FontWeight.w900,
                       color: darkText,
                       letterSpacing: -1,
@@ -584,7 +613,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   Text(
                     'Escolha uma loja para iniciar o processo de expedição',
                     style: GoogleFonts.inter(
-                      fontSize: 15,
+                      fontSize: isTablet ? 17 : 15,
                       color: textLight,
                       fontWeight: FontWeight.w500,
                       height: 1.5,
@@ -595,7 +624,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
             ),
             Expanded(
               child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: EdgeInsets.fromLTRB(
+                  isTablet ? 32 : 24, 
+                  8, 
+                  isTablet ? 32 : 24, 
+                  100, // Espaço extra no bottom para não sobrepor o FAB
+                ),
                 physics: const BouncingScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: MediaQuery.of(context).size.width > 1200 
@@ -605,9 +639,9 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                           : MediaQuery.of(context).size.width > 600 
                               ? 3 
                               : 2,
-                  childAspectRatio: 1.0,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  childAspectRatio: isTablet ? 0.88 : 1.0, // Ajustado para tablet
+                  crossAxisSpacing: isTablet ? 20 : 16,
+                  mainAxisSpacing: isTablet ? 20 : 16,
                 ),
                 itemCount: lojas.length,
                 itemBuilder: (_, i) {
@@ -670,7 +704,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(18),
+                                padding: EdgeInsets.all(isTablet ? 20 : 18),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: gradient,
@@ -688,20 +722,21 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                 ),
                                 child: Icon(
                                   icon,
-                                  size: 36,
+                                  size: isTablet ? 42 : 36,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: isTablet ? 18 : 16),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: EdgeInsets.symmetric(horizontal: isTablet ? 14 : 12),
                                 child: Text(
                                   lojaNome,
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 15,
+                                    fontSize: isTablet ? 17 : 15,
                                     color: darkText,
                                     letterSpacing: 0.2,
+                                    height: 1.2,
                                   ),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
@@ -710,7 +745,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isTablet ? 12 : 10, 
+                                  vertical: isTablet ? 6 : 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: lightGray,
                                   borderRadius: BorderRadius.circular(8),
@@ -718,7 +756,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                 child: Text(
                                   'ID: $lojaId',
                                   style: GoogleFonts.inter(
-                                    fontSize: 11,
+                                    fontSize: isTablet ? 13 : 11,
                                     color: textLight,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5,
@@ -741,6 +779,8 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   }
 
   Widget _buildGridCategorias() {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
@@ -748,7 +788,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              padding: EdgeInsets.fromLTRB(
+                isTablet ? 32 : 24, 
+                isTablet ? 36 : 32, 
+                isTablet ? 32 : 24, 
+                isTablet ? 28 : 24,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -763,13 +808,17 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.category_rounded, size: 40, color: primaryOrange),
+                    child: Icon(
+                      Icons.category_rounded, 
+                      size: isTablet ? 48 : 40, 
+                      color: primaryOrange,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Categorias',
                     style: GoogleFonts.inter(
-                      fontSize: 32,
+                      fontSize: isTablet ? 36 : 32,
                       fontWeight: FontWeight.w900,
                       color: darkText,
                       letterSpacing: -1,
@@ -780,7 +829,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   Text(
                     '${categoriasMap.length} categorias disponíveis',
                     style: GoogleFonts.inter(
-                      fontSize: 15,
+                      fontSize: isTablet ? 17 : 15,
                       color: textLight,
                       fontWeight: FontWeight.w500,
                       height: 1.5,
@@ -791,7 +840,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
             ),
             Expanded(
               child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: EdgeInsets.fromLTRB(
+                  isTablet ? 32 : 24, 
+                  8, 
+                  isTablet ? 32 : 24, 
+                  100, // Espaço extra no bottom para não sobrepor o FAB
+                ),
                 physics: const BouncingScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: MediaQuery.of(context).size.width > 1200 
@@ -801,9 +855,9 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                           : MediaQuery.of(context).size.width > 600 
                               ? 3 
                               : 2,
-                  childAspectRatio: 1.05,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  childAspectRatio: isTablet ? 0.92 : 1.05, // Ajustado para tablet
+                  crossAxisSpacing: isTablet ? 20 : 16,
+                  mainAxisSpacing: isTablet ? 20 : 16,
                 ),
                 itemCount: categoriasMap.length,
                 itemBuilder: (_, i) {
@@ -864,7 +918,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                 top: 12,
                                 right: 12,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isTablet ? 12 : 10, 
+                                    vertical: isTablet ? 8 : 6,
+                                  ),
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(colors: gradient),
                                     borderRadius: BorderRadius.circular(12),
@@ -881,7 +938,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                     style: GoogleFonts.inter(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
-                                      fontSize: 13,
+                                      fontSize: isTablet ? 15 : 13,
                                     ),
                                   ),
                                 ),
@@ -890,7 +947,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(18),
+                                    padding: EdgeInsets.all(isTablet ? 20 : 18),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
@@ -902,20 +959,21 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                     ),
                                     child: Icon(
                                       Icons.inventory_2_rounded,
-                                      size: 40,
+                                      size: isTablet ? 46 : 40,
                                       color: gradient[0],
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  SizedBox(height: isTablet ? 18 : 16),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: EdgeInsets.symmetric(horizontal: isTablet ? 18 : 16),
                                     child: Text(
                                       cat,
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.w800,
-                                        fontSize: 15,
+                                        fontSize: isTablet ? 17 : 15,
                                         color: darkText,
                                         letterSpacing: 0.2,
+                                        height: 1.2,
                                       ),
                                       textAlign: TextAlign.center,
                                       maxLines: 2,
@@ -926,7 +984,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                   Text(
                                     '${produtos.length} produto${produtos.length != 1 ? 's' : ''}',
                                     style: GoogleFonts.inter(
-                                      fontSize: 12,
+                                      fontSize: isTablet ? 14 : 12,
                                       color: textLight,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -950,6 +1008,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
 
   Widget _buildListaProdutos() {
     final lista = categoriasMap[categoriaSelecionada] ?? [];
+    final isTablet = MediaQuery.of(context).size.width > 600;
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -957,7 +1016,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
         children: [
           // Header da categoria com botão de voltar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: EdgeInsets.symmetric(
+              horizontal: isTablet ? 32 : 24, 
+              vertical: isTablet ? 24 : 20,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [cardWhite, lightGray],
@@ -984,7 +1046,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       _pageAnimationController.forward();
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: EdgeInsets.all(isTablet ? 14 : 12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -998,10 +1060,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                           width: 1.5,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_rounded,
                         color: primaryOrange,
-                        size: 22,
+                        size: isTablet ? 26 : 22,
                       ),
                     ),
                   ),
@@ -1014,7 +1076,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       Text(
                         categoriaSelecionada!,
                         style: GoogleFonts.inter(
-                          fontSize: 22,
+                          fontSize: isTablet ? 26 : 22,
                           fontWeight: FontWeight.w900,
                           color: darkText,
                           letterSpacing: -0.5,
@@ -1024,7 +1086,10 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isTablet ? 10 : 8, 
+                              vertical: isTablet ? 6 : 4,
+                            ),
                             decoration: BoxDecoration(
                               color: successGreen.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
@@ -1038,14 +1103,14 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                               children: [
                                 Icon(
                                   Icons.check_circle_rounded,
-                                  size: 14,
+                                  size: isTablet ? 16 : 14,
                                   color: successGreen,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${lista.length} disponíveis',
                                   style: GoogleFonts.inter(
-                                    fontSize: 12,
+                                    fontSize: isTablet ? 14 : 12,
                                     color: successGreen,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -1064,7 +1129,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
           // Lista de produtos
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.fromLTRB(
+                isTablet ? 32 : 24, 
+                isTablet ? 28 : 24, 
+                isTablet ? 32 : 24, 
+                100, // Espaço extra no bottom para não sobrepor o FAB
+              ),
               physics: const BouncingScrollPhysics(),
               itemCount: lista.length,
               itemBuilder: (_, i) {
@@ -1086,7 +1156,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                     );
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
                     decoration: BoxDecoration(
                       gradient: temNoCarrinho
                           ? LinearGradient(
@@ -1112,7 +1182,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(isTablet ? 24 : 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1120,7 +1190,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(14),
+                                padding: EdgeInsets.all(isTablet ? 16 : 14),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: temNoCarrinho
@@ -1144,7 +1214,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                 child: Icon(
                                   Icons.inventory_2_rounded,
                                   color: temNoCarrinho ? Colors.white : primaryOrange,
-                                  size: 28,
+                                  size: isTablet ? 32 : 28,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -1155,27 +1225,30 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                     Text(
                                       p.nome,
                                       style: GoogleFonts.inter(
-                                        fontSize: 18,
+                                        fontSize: isTablet ? 20 : 18,
                                         fontWeight: FontWeight.w900,
                                         color: darkText,
                                         letterSpacing: -0.3,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
-                                    Row(
+                                    SizedBox(height: isTablet ? 10 : 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
                                       children: [
                                         _buildEstoqueBadge(
                                           '${p.fardos}',
                                           'fardos',
                                           primaryOrange,
                                           Icons.widgets_rounded,
+                                          isTablet,
                                         ),
-                                        const SizedBox(width: 8),
                                         _buildEstoqueBadge(
                                           '${p.avulsas}',
                                           'avulsas',
                                           accentBlue,
                                           Icons.apps_rounded,
+                                          isTablet,
                                         ),
                                       ],
                                     ),
@@ -1185,7 +1258,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                               // Indicador visual se tem no carrinho
                               if (temNoCarrinho)
                                 Container(
-                                  padding: const EdgeInsets.all(10),
+                                  padding: EdgeInsets.all(isTablet ? 12 : 10),
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
                                       colors: [primaryOrange, lightOrange],
@@ -1199,18 +1272,18 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.shopping_cart_rounded,
                                     color: Colors.white,
-                                    size: 20,
+                                    size: isTablet ? 24 : 20,
                                   ),
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: isTablet ? 24 : 20),
                           // Controles de quantidade
                           Container(
-                            padding: const EdgeInsets.all(18),
+                            padding: EdgeInsets.all(isTablet ? 22 : 18),
                             decoration: BoxDecoration(
                               color: lightGray,
                               borderRadius: BorderRadius.circular(18),
@@ -1229,8 +1302,9 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                   primaryOrange,
                                   () => _remover(p.id, 'f'),
                                   () => _adicionarComLimite(p.id, 'f'),
+                                  isTablet,
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: isTablet ? 20 : 16),
                                 Container(
                                   height: 1,
                                   decoration: BoxDecoration(
@@ -1243,7 +1317,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: isTablet ? 20 : 16),
                                 _buildQuantidadeRow(
                                   'Avulsas',
                                   Icons.apps_rounded,
@@ -1252,6 +1326,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                                   accentBlue,
                                   () => _remover(p.id, 'a'),
                                   () => _adicionarComLimite(p.id, 'a'),
+                                  isTablet,
                                 ),
                               ],
                             ),
@@ -1269,9 +1344,18 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildEstoqueBadge(String quantidade, String label, Color cor, IconData icon) {
+  Widget _buildEstoqueBadge(
+    String quantidade, 
+    String label, 
+    Color cor, 
+    IconData icon,
+    bool isTablet,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 14 : 12, 
+        vertical: isTablet ? 10 : 8,
+      ),
       decoration: BoxDecoration(
         color: cor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
@@ -1280,12 +1364,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: cor),
+          Icon(icon, size: isTablet ? 18 : 16, color: cor),
           const SizedBox(width: 6),
           Text(
             quantidade,
             style: GoogleFonts.inter(
-              fontSize: 15,
+              fontSize: isTablet ? 17 : 15,
               fontWeight: FontWeight.w900,
               color: cor,
             ),
@@ -1294,7 +1378,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
           Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 12,
+              fontSize: isTablet ? 14 : 12,
               fontWeight: FontWeight.w600,
               color: textLight,
             ),
@@ -1312,6 +1396,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     Color cor,
     VoidCallback onRemove,
     VoidCallback onAdd,
+    bool isTablet,
   ) {
     final porcentagem = estoque > 0 ? (quantidade / estoque) : 0.0;
     
@@ -1321,7 +1406,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(isTablet ? 12 : 10),
               decoration: BoxDecoration(
                 color: cardWhite,
                 borderRadius: BorderRadius.circular(12),
@@ -1333,7 +1418,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   ),
                 ],
               ),
-              child: Icon(icon, color: cor, size: 22),
+              child: Icon(icon, color: cor, size: isTablet ? 26 : 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1344,7 +1429,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                     label,
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.w800,
-                      fontSize: 16,
+                      fontSize: isTablet ? 18 : 16,
                       color: darkText,
                       letterSpacing: 0.2,
                     ),
@@ -1353,7 +1438,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   Text(
                     'Estoque: $estoque',
                     style: GoogleFonts.inter(
-                      fontSize: 12,
+                      fontSize: isTablet ? 14 : 12,
                       color: textLight,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1368,7 +1453,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                 borderRadius: BorderRadius.circular(14),
                 onTap: quantidade > 0 ? onRemove : null,
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(isTablet ? 12 : 10),
                   decoration: BoxDecoration(
                     gradient: quantidade > 0
                         ? LinearGradient(
@@ -1387,15 +1472,18 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   child: Icon(
                     Icons.remove_rounded,
                     color: quantidade > 0 ? dangerRed : Colors.grey,
-                    size: 22,
+                    size: isTablet ? 26 : 22,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Container(
-              constraints: const BoxConstraints(minWidth: 60),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              constraints: BoxConstraints(minWidth: isTablet ? 70 : 60),
+              padding: EdgeInsets.symmetric(
+                horizontal: isTablet ? 24 : 20, 
+                vertical: isTablet ? 14 : 12,
+              ),
               decoration: BoxDecoration(
                 gradient: quantidade > 0
                     ? LinearGradient(
@@ -1430,7 +1518,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                 style: GoogleFonts.inter(
                   color: quantidade > 0 ? Colors.white : textLight,
                   fontWeight: FontWeight.w900,
-                  fontSize: 20,
+                  fontSize: isTablet ? 24 : 20,
                   letterSpacing: 0.5,
                 ),
                 textAlign: TextAlign.center,
@@ -1443,7 +1531,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                 borderRadius: BorderRadius.circular(14),
                 onTap: estoque > quantidade ? onAdd : null,
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(isTablet ? 12 : 10),
                   decoration: BoxDecoration(
                     gradient: estoque > quantidade
                         ? LinearGradient(
@@ -1462,7 +1550,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   child: Icon(
                     Icons.add_rounded,
                     color: estoque > quantidade ? cor : Colors.grey,
-                    size: 22,
+                    size: isTablet ? 26 : 22,
                   ),
                 ),
               ),
@@ -1471,7 +1559,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
         ),
         // Barra de progresso
         if (quantidade > 0) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: isTablet ? 14 : 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: TweenAnimationBuilder<double>(
@@ -1483,7 +1571,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
                   value: value,
                   backgroundColor: Colors.grey.withOpacity(0.2),
                   valueColor: AlwaysStoppedAnimation<Color>(cor),
-                  minHeight: 6,
+                  minHeight: isTablet ? 8 : 6,
                 );
               },
             ),
@@ -1492,7 +1580,7 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
           Text(
             '${(porcentagem * 100).toStringAsFixed(0)}% do estoque',
             style: GoogleFonts.inter(
-              fontSize: 11,
+              fontSize: isTablet ? 13 : 11,
               color: textLight,
               fontWeight: FontWeight.w600,
             ),
