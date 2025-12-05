@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import '../api_service.dart';
-import '../produto.dart';
+import '../../api_service.dart';
+import '../../produto.dart';
 import 'carrinho_expedicao.dart';
 import 'dart:math' as math;
 
@@ -802,9 +802,6 @@ class _ChecagemScreenState extends State<ChecagemScreen>
   }
 }
 
-// ============================================
-// COMPONENTE: Card de Estatística
-// ============================================
 class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -890,9 +887,7 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ============================================
-// COMPONENTE: Card de Produto Moderno
-// ============================================
+
 class ModernProductCard extends StatefulWidget {
   final Produto produto;
   final int quantidadeInicial;
@@ -990,7 +985,7 @@ class _ModernProductCardState extends State<ModernProductCard>
   Widget build(BuildContext context) {
     quantidade = CarrinhoExpedicao.itens[widget.produtoId]?[widget.tipoCarrinho] ?? 0;
 
-    // 🐛 FIX: Se quantidade for 0, não renderiza o widget
+
     if (quantidade == 0) {
       return const SizedBox.shrink();
     }
@@ -1446,9 +1441,7 @@ class _ModernProductCardState extends State<ModernProductCard>
   }
 }
 
-// ============================================
-// COMPONENTE: Botão de Quantidade
-// ============================================
+
 class _QuantityButton extends StatefulWidget {
   final IconData icon;
   final Color color;

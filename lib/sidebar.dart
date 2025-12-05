@@ -1,14 +1,24 @@
-// lib/sidebar.dart
+// lib/sidebar.dart - Versão Caprichada (FIXED: Removido 'inset' e atualizado 'withOpacity')
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'api_service.dart';
-import 'home_screen.dart';
-import 'expedicao/expedicao_screen.dart';
-import 'login_screen.dart';
-import 'main.dart';
+import 'widgets/home_screen.dart'; 
+import 'screens/expedicao/expedicao_screen.dart';
+import 'screens/adicionar_produto_screen.dart' as add; 
+
+// ====================================================================
+// 💡 NOVOS CONSTANTES DE ESTILO 
+// ====================================================================
+
+// Cores e Estilos aprimorados para uma UX/UI elegante
+const Color _kPrimaryColor = Color(0xFFFF6B35); // Laranja Principal
+const Color _kDarkBackground = Color(0xFF121212); // Fundo escuro aprofundado
+const Color _kDarkSurface = Color(0xFF1E1E1E); // Superfície de componentes escuros
+const double _kBorderRadius = 12.0; // Raio de borda uniforme e suave
 
 class Sidebar extends StatefulWidget {
   const Sidebar({super.key});
+
   @override
   State<Sidebar> createState() => _SidebarState();
 }
@@ -16,6 +26,95 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar> {
   String _selectedMain = 'Estoque Geral';
   String _selectedCategory = '';
+  
+  void selectMainItem(String title) {
+    setState(() {
+      _selectedMain = title;
+      _selectedCategory = '';
+    });
+  }
+
+  // ====================================================================
+  // 💅 MENU ITEM - Design Sofisticado
+  // ====================================================================
+  Widget _menuItem(String title, IconData icon, {required bool isSelected}) {
+    // CORREÇÃO: Usando .withAlpha() ao invés de .withOpacity()
+    final iconColor = isSelected ? Colors.white : Colors.white.withAlpha(255 * 45 ~/ 100); // 45% opacidade
+    final textColor = isSelected ? Colors.white : Colors.white.withAlpha(255 * 70 ~/ 100); // 70% opacidade
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        // CORREÇÃO: Usando .withAlpha()
+        color: isSelected ? null : _kDarkSurface.withAlpha(255 * 50 ~/ 100), // 50% opacidade
+        gradient: isSelected
+            ? const LinearGradient(
+                colors: [_kPrimaryColor, Color(0xFFFF8C42)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : null,
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  // CORREÇÃO: Usando .withAlpha()
+                  color: _kPrimaryColor.withAlpha(255 * 30 ~/ 100), // 30% opacidade
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : [
+                BoxShadow(
+                  // CORREÇÃO: Usando .withAlpha()
+                  color: Colors.black.withAlpha(255 * 20 ~/ 100), // 20% opacidade
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
+        borderRadius: BorderRadius.circular(_kBorderRadius),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(_kBorderRadius),
+          onTap: () {
+            selectMainItem(title); 
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 18),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: iconColor,
+                  size: 22,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (isSelected) 
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,113 +122,170 @@ class _SidebarState extends State<Sidebar> {
       backgroundColor: Colors.white,
       body: Row(
         children: [
-          // === SIDEBAR ===
+          // ==================== SIDEBAR ====================
           Container(
-            width: 290,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF0A0A0A), Color(0xFF1A1A1A)]),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: Offset(4, 0))],
+            width: 280,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_kDarkBackground, Color(0xFF1A1A1A)], 
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black38,
+                  blurRadius: 15,
+                  offset: Offset(4, 0),
+                )
+              ],
             ),
             child: Column(
               children: [
-                // LOGO
+                // LOGO - Com mais respiro e menos BOX
                 Container(
-                  padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 60, 24, 28), // Mais padding superior
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)]),
-                    boxShadow: [BoxShadow(color: Color(0xFFFF6B35).withOpacity(0.3), blurRadius: 15, offset: Offset(0, 4))],
+                    gradient: const LinearGradient(
+                       colors: [Color(0xFF1E1E1E), _kDarkBackground], // Fundo sutilmente mais claro
+                       begin: Alignment.topCenter,
+                       end: Alignment.bottomCenter,
+                    ),
+                     border: const Border(bottom: BorderSide(color: Colors.white10)),
+                    boxShadow: [
+                      BoxShadow( // Sombra sutil para destacar a área do logo
+                        // Corrigido para .withAlpha()
+                        color: Colors.black.withAlpha(255 * 50 ~/ 100), // 50% opacidade
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                        child: const Icon(Icons.inventory_2_rounded, size: 28, color: Color(0xFFFF6B35)),
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                            color: _kPrimaryColor, // Cor de destaque no ícone
+                            shape: BoxShape.circle
+                        ),
+                        // ✅ RESTAURADO: Seu asset de imagem original
+                        child: Image.asset(
+                          'assets/go-icon.png', // Caminho EXATO do asset
+                          width: 28, 
+                          height: 28, 
+                        ),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Ao Gosto', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-                            Text('Controle de Bebidas', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
+                            Text('Ao Gosto',
+                                // ✅ CORRIGIDO: Aplicando GoogleFonts.inter ao invés de TextStyle padrão
+                                style: GoogleFonts.inter(
+                                  color: Colors.white, 
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                )),
+                            const SizedBox(height: 2),
+                            const Text('Controle de Bebidas',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                )),
                           ],
                         ),
                       ),
                     ],
                   ),
                 ),
+                // CONFERENTE DROPDOWN
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 20, 24, 16),
+                  child: _ConferenteDropdown(),
+                ),
 
-                // CONFERENTE
-                Padding(padding: const EdgeInsets.fromLTRB(20, 20, 20, 16), child: _conferenteDropdown()),
+                const Divider(height: 1, color: Colors.white12, indent: 24, endIndent: 24),
+                const SizedBox(height: 16),
 
-                // DIVISOR
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Container(height: 1, color: Colors.white.withOpacity(0.1))),
-                const SizedBox(height: 8),
-
-                // MENU PRINCIPAL
+                // MENU
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     children: [
-                      _menuItem('Estoque Geral', Icons.inventory_2_rounded, isSelected: _selectedMain == 'Estoque Geral'),
-                      _menuItem('Expedição', Icons.local_shipping_rounded, isSelected: _selectedMain == 'Expedição'),
+                      _menuItem('Estoque Geral', Icons.inventory_2_rounded,
+                          isSelected: _selectedMain == 'Estoque Geral'),
+                      _menuItem('Expedição', Icons.local_shipping_rounded,
+                          isSelected: _selectedMain == 'Expedição'),
+                      _menuItem('Adicionar Produto', Icons.add_box_rounded,
+                          isSelected: _selectedMain == 'Adicionar Produto'),
+                      const SizedBox(height: 24),
+                       const Text('FERRAMENTAS', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+                      
                     ],
                   ),
                 ),
 
-                // === RODAPÉ COM LOGOUT ===
+                // RODAPÉ - LOGOUT
                 Container(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: Colors.white12)),
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(Icons.copyright_rounded, size: 11, color: Colors.white30),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Ao Gosto 2025',
-                            style: GoogleFonts.inter(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.w500),
-                          ),
+                          Icon(Icons.copyright_rounded, size: 10, color: Colors.white30),
+                          SizedBox(width: 4),
+                          Text('Ao Gosto 2025',
+                              style: TextStyle(color: Colors.white38, fontSize: 11)),
                         ],
                       ),
-                      const Spacer(),
                       if (ApiService.conferenteNome != null)
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(_kBorderRadius),
                             onTap: () async {
-                              final confirmed = await _showLogoutDialog(context);
-                              if (confirmed && mounted) {
+                              final sair = await showDialog<bool>(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                          title: const Text('Sair'),
+                                          content: const Text('Deseja realmente sair?'),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Não')),
+                                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sim')),
+                                          ],
+                                        ),
+                                      ) ?? false;
+
+                              if (sair && mounted) {
                                 await ApiService.logout();
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const LoginWrapper()),
-                                );
+                                if (mounted) {
+                                  Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                                }
                               }
                             },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
+                            child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(colors: [Colors.red, Colors.red]),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 3))],
+                                gradient: const LinearGradient(colors: [Color(0xFFDC2626), Color(0xFFEF4444)]),
+                                borderRadius: BorderRadius.circular(_kBorderRadius), 
+                                boxShadow: [
+                                  // CORREÇÃO: Usando .withAlpha()
+                                  BoxShadow(color: Colors.red.withAlpha(255 * 40 ~/ 100), blurRadius: 8, offset: const Offset(0, 2)) // 40% opacidade
+                                ],
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.logout_rounded, size: 16, color: Colors.white),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Sair',
-                                    style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-                                  ),
+                                  Icon(Icons.logout_rounded, size: 18, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text('Sair', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                                 ],
                               ),
                             ),
@@ -142,212 +298,105 @@ class _SidebarState extends State<Sidebar> {
             ),
           ),
 
-          // === CONTEÚDO ===
+          // ==================== CONTEÚDO PRINCIPAL ====================
           Expanded(
-            child: Column(
-              children: [
-                // HEADER
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)]),
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                        child: Icon(
-                          _selectedMain == 'Estoque Geral' ? Icons.inventory_2_rounded : Icons.local_shipping_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        _selectedMain,
-                        style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF212529)),
-                      ),
-                      const Spacer(),
-                      if (ApiService.conferenteNome != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [const Color(0xFFFF6B35).withOpacity(0.15), const Color(0xFFFF8C42).withOpacity(0.15)]),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.3), width: 1.5),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)]), shape: BoxShape.circle),
-                                child: const Icon(Icons.person_rounded, size: 16, color: Colors.white),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                ApiService.conferenteNome!,
-                                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFFFF6B35)),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                // CONTEÚDO
-                Expanded(
-                  child: _selectedMain == 'Estoque Geral'
-                      ? HomeScreen(selectedCategory: _selectedCategory, onCategoryChanged: (c) => setState(() => _selectedCategory = c))
-                      : _selectedMain == 'Expedição'
-                          ? const ExpedicaoScreen()
-                          : const Center(child: Text('Página não encontrada')),
-                ),
-              ],
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+              child: _selectedMain == 'Estoque Geral'
+                  ? HomeScreen(
+                        key: const ValueKey('estoque'),
+                        selectedCategory: _selectedCategory,
+                        onCategoryChanged: (c) => setState(() => _selectedCategory = c),
+                        onMainItemChanged: selectMainItem, 
+                    )
+                  : _selectedMain == 'Expedição'
+                      ? const ExpedicaoScreen(key: ValueKey('expedicao'))
+                      : _selectedMain == 'Adicionar Produto'
+                          ? add.AdicionarProdutoScreen(
+                                key: const ValueKey('adicionar'),
+                                onMainItemChanged: selectMainItem, 
+                              )
+                          : const Center(child: Text('Em desenvolvimento...', key: ValueKey('dev'))),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _menuItem(String title, IconData icon, {required bool isSelected}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        gradient: isSelected ? const LinearGradient(colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)]) : null,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFF6B35).withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4))] : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            setState(() {
-              _selectedMain = title;
-              _selectedCategory = '';
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            child: Row(
-              children: [
-                Icon(icon, color: isSelected ? Colors.white : Colors.white.withOpacity(0.6), size: 22),
-                const SizedBox(width: 14),
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.85),
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  ),
-                ),
-                if (isSelected) const Spacer(),
-                if (isSelected) const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+// ====================================================================
+// ⚙️ CONFERENTE DROPDOWN - Corrigido 'inset' e 'withOpacity'
+// ====================================================================
+class _ConferenteDropdown extends StatelessWidget {
+  const _ConferenteDropdown();
 
-  Widget _conferenteDropdown() {
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: _kDarkSurface,
+        borderRadius: BorderRadius.circular(_kBorderRadius), 
+        // CORREÇÃO: Usando .withAlpha()
+        border: Border.all(color: Colors.white.withAlpha(255 * 10 ~/ 100)), // 10% opacidade
+        boxShadow: [
+          // REMOVIDO 'inset': Usando apenas a sombra externa de profundidade
+          BoxShadow(
+            // CORREÇÃO: Usando .withAlpha()
+            color: Colors.black.withAlpha(255 * 40 ~/ 100), // 40% opacidade
+            blurRadius: 6,
+            offset: const Offset(2, 2),
+          ),
+          // Sombra para simular o brilho superior (efeito de relevo sutil)
+          BoxShadow(
+            // CORREÇÃO: Usando .withAlpha()
+            color: Colors.white.withAlpha(255 * 5 ~/ 100), // 5% opacidade
+            blurRadius: 4,
+            offset: const Offset(-2, -2),
+          ),
+        ],
       ),
       child: FutureBuilder<List<Map<String, dynamic>>>(
         future: ApiService.getConferentes(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return _loadingDropdown();
+          if (!snapshot.hasData) {
+            return Container(
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(color: _kDarkSurface, borderRadius: BorderRadius.circular(_kBorderRadius)),
+              child: const Center(child: CircularProgressIndicator(color: _kPrimaryColor, strokeWidth: 2.5)),
+            );
+          }
           final conferentes = snapshot.data!;
           return DropdownButtonFormField<int>(
-            value: ApiService.conferenteId,
+            initialValue: ApiService.conferenteId, 
             decoration: const InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              prefixIcon: Icon(Icons.person_rounded, color: Colors.white, size: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              prefixIcon: Icon(Icons.person_rounded, color: Colors.white70, size: 20),
             ),
-            dropdownColor: const Color(0xFF2A2A2A),
-            style: GoogleFonts.inter(color: Colors.white),
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white54, size: 20),
+            dropdownColor: _kDarkBackground,
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
             items: conferentes
-                .map((c) => DropdownMenuItem(value: c['id'] as int, child: Text(c['nome'] as String)))
+                .map((c) => DropdownMenuItem(
+                      value: c['id'] as int, 
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Text(c['nome'] as String),
+                      ),
+                    ))
                 .toList(),
-            onChanged: (id) => id != null
-                ? ApiService.selecionarConferente(id, conferentes.firstWhere((c) => c['id'] == id)['nome'] as String)
-                : null,
+            onChanged: (id) async {
+              if (id != null) {
+                final nome = conferentes.firstWhere((c) => c['id'] == id)['nome'] as String;
+                await ApiService.selecionarConferente(id, nome);
+              }
+            },
           );
         },
       ),
     );
-  }
-
-  Widget _loadingDropdown() => Container(
-        height: 50,
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(14)),
-        child: const Center(child: CircularProgressIndicator(color: Color(0xFFFF6B35), strokeWidth: 2.5)),
-      );
-
-  Future<bool> _showLogoutDialog(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            elevation: 12,
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(gradient: LinearGradient(colors: [Colors.red, Colors.red]), shape: BoxShape.circle),
-                  child: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Sair do Sistema',
-                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF212529)),
-                ),
-              ],
-            ),
-            content: Text(
-              'Tem certeza que deseja sair?\nVocê será redirecionado para a tela de login.',
-              style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF6C757D), height: 1.5),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  'Cancelar',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF6C757D)),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  'Sair',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        ) ??
-        false;
   }
 }

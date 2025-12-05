@@ -5,22 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'produto.dart';
 
 class ApiService {
-  // URL DO SERVIDOR
+
   static const String baseUrl = 'https://aogosto.store/estoquebebidas/api';
   static const Duration _timeout = Duration(seconds: 15);
 
-  // DADOS DO CONFERENTE LOGADO
+
   static int? conferenteId;
   static String? conferenteNome;
 
-  // CACHES
+
   static List<Map<String, dynamic>> _conferentesCache = [];
   static List<Map<String, dynamic>> _categoriasCache = [];
 
-  // === ESTÁ LOGADO? ===
   static bool get estaLogado => conferenteId != null;
 
-  // === CARREGAR CONFERENTE DO CACHE ===
+
   static Future<void> carregarConferenteCache() async {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getInt('conferente_id');
@@ -32,7 +31,7 @@ class ApiService {
     }
   }
 
-  // === CARREGAR ESTOQUE ===
+
   static Future<List<Produto>> getEstoque() async {
     try {
       final response = await http.get(
@@ -52,7 +51,7 @@ class ApiService {
     }
   }
 
-  // === ATUALIZAR QUANTIDADE ===
+
   static Future<void> updateQuantidade(int id, String tipo, int delta) async {
     if (conferenteId == null) throw Exception('Usuário não logado');
     if (!['f', 'a'].contains(tipo)) throw Exception('Tipo inválido: use "f" ou "a"');
@@ -90,7 +89,6 @@ class ApiService {
     }
   }
 
-  // === CARREGAR CONFERENTES (COM CACHE) ===
   static Future<List<Map<String, dynamic>>> getConferentes() async {
     if (_conferentesCache.isNotEmpty) return _conferentesCache;
 
@@ -112,7 +110,7 @@ class ApiService {
     return [];
   }
 
-  // === CARREGAR CATEGORIAS DO BANCO (PADRONIZA COM 'name') ===
+
   static Future<List<Map<String, dynamic>>> getCategorias() async {
     if (_categoriasCache.isNotEmpty) return _categoriasCache;
 
@@ -133,7 +131,7 @@ class ApiService {
       print('Erro ao carregar categorias: $e');
     }
 
-    // MOCK DE SEGURANÇA
+
     final mock = [
       {'name': 'Refrigerante'},
       {'name': 'Cerveja Long Neck'},
@@ -150,7 +148,7 @@ class ApiService {
     return mock;
   }
 
-  // === SELECIONAR CONFERENTE ===
+
   static Future<void> selecionarConferente(int id, String nome) async {
     try {
       final response = await http.post(
@@ -161,7 +159,7 @@ class ApiService {
 
       if (response.statusCode != 200) throw Exception('Erro HTTP: ${response.statusCode}');
 
-      // Atualiza localmente
+
       conferenteId = id;
       conferenteNome = nome;
 
@@ -174,7 +172,7 @@ class ApiService {
     }
   }
 
-  // === VERIFICAR LOGIN (LEGADO - opcional) ===
+
   static Future<bool> checkLogin() async {
     if (conferenteId != null && conferenteNome != null) return true;
 
@@ -190,7 +188,7 @@ class ApiService {
     return false;
   }
 
-  // === LOGOUT ===
+
   static Future<void> logout() async {
     conferenteId = null;
     conferenteNome = null;
@@ -201,7 +199,7 @@ class ApiService {
     _categoriasCache.clear();
   }
 
-  // === EXPEDIR PARA LOJA (NOVA FUNÇÃO) ===
+
   static Future<void> expedirParaLoja(int lojaId, Map<int, Map<String, int>> carrinho) async {
   if (carrinho.isEmpty) throw Exception('Carrinho vazio');
   if (conferenteId == null) throw Exception('Conferente não logado');
@@ -216,10 +214,10 @@ class ApiService {
 
   final payload = {
     'loja_id': lojaId,
-    'conferente_id': conferenteId!,           // ← ESSA LINHA ESTAVA FALTANDO
-    'conferente_nome': conferenteNome ?? '',  // ← OPCIONAL, mas recomendado
+    'conferente_id': conferenteId!,           
+    'conferente_nome': conferenteNome ?? '', 
     'itens': itens,
-    'origem': 'app'                           // ← bom ter também
+    'origem': 'app'                           
   };
 
   print('ENVIANDO EXPEDIÇÃO → $payload');
