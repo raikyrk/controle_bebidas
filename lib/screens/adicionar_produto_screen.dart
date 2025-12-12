@@ -20,26 +20,28 @@ class AdicionarProdutoScreen extends StatefulWidget {
 
 class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
     with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
+  // === CONTROLADORES ===
   final _nomeController = TextEditingController();
   final _fardosController = TextEditingController(text: '0');
   final _avulsasController = TextEditingController(text: '0');
+  
+  // Controlador da Página (Wizard)
+  late PageController _pageController;
 
+  // === ANIMAÇÕES ===
   late AnimationController _headerController;
-  late AnimationController _cardController;
   late Animation<double> _headerFade;
   late Animation<Offset> _headerSlide;
-  late Animation<double> _cardScale;
 
+  // === ESTADO ===
   String? _categoriaSelecionada;
-  int _fardos = 0;
-  int _avulsas = 0;
-
   List<Map<String, dynamic>> _categorias = [];
+  
   bool _carregando = true;
   bool _salvando = false;
+  int _currentStep = 0; // 0: Nome, 1: Categoria, 2: Qtd, 3: Resumo
 
-  // === NOVA PALETA: PRETO + BRANCO + LARANJA NEON (FIRE MODE) ===
+  // === PALETA FIRE MODE ===
   static const Color pureBlack = Color(0xFF000000);
   static const Color deepBlack = Color(0xFF0A0A0A);
   static const Color cardBlack = Color(0xFF1A1A1A);
@@ -47,20 +49,16 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
   static const Color neonOrange = Color(0xFFFF6B00);
   static const Color softOrange = Color(0xFFFF8C42);
   static const Color pureWhite = Color(0xFFFFFFFF);
-  // static const Color offWhite = Color(0xFFF5F5F5); 
   static const Color grayText = Color(0xFFAAAAAA);
   static const Color borderGray = Color(0xFF333333);
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
 
     _headerController = AnimationController(
       duration: const Duration(milliseconds: 1400),
-      vsync: this,
-    );
-    _cardController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
@@ -72,15 +70,11 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _headerController, curve: Curves.elasticOut));
 
-    _cardScale = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _cardController, curve: Curves.easeOutBack),
-    );
-
     _headerController.forward();
-    _cardController.forward();
     _carregarCategorias();
   }
 
+  // ... (Métodos de API e SnackBar mantidos iguais) ...
   Future<void> _carregarCategorias() async {
     try {
       final lista = await ApiService.getCategorias();
@@ -88,9 +82,7 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
         _categorias = lista;
         _carregando = false;
       });
-      if (_categorias.isNotEmpty && _categoriaSelecionada == null) {
-        setState(() => _categoriaSelecionada = _categorias.first['name'] as String);
-      }
+      // Não seleciona auto aqui para obrigar o user a escolher, ou selecione se preferir
     } catch (e) {
       setState(() => _carregando = false);
       _mostrarSnackBar('Erro ao carregar categorias', isError: true);
@@ -130,19 +122,59 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
     );
   }
 
-  Future<void> _salvar() async {
-    if (!_formKey.currentState!.validate()) {
-      HapticFeedback.mediumImpact();
-      return;
-    }
-    if (_categoriaSelecionada == null || _categoriaSelecionada!.isEmpty) {
-      _mostrarSnackBar('Selecione uma categoria', isError: true);
-      HapticFeedback.mediumImpact();
-      return;
+  // === LÓGICA DE NAVEGAÇÃO DO WIZARD ===
+  void _avancarPasso() {
+    HapticFeedback.lightImpact();
+    
+    // Validação Passo 0: Nome
+    if (_currentStep == 0) {
+      if (_nomeController.text.trim().isEmpty) {
+        _mostrarSnackBar('Por favor, digite o nome do produto', isError: true);
+        HapticFeedback.mediumImpact();
+        return;
+      }
     }
 
-    _fardos = int.tryParse(_fardosController.text) ?? 0;
-    _avulsas = int.tryParse(_avulsasController.text) ?? 0;
+    // Validação Passo 1: Categoria
+    if (_currentStep == 1) {
+      if (_categoriaSelecionada == null) {
+        _mostrarSnackBar('Selecione uma categoria para continuar', isError: true);
+        HapticFeedback.mediumImpact();
+        return;
+      }
+    }
+
+    // Se chegou no último passo (Resumo), salva. Se não, avança página.
+    if (_currentStep < 3) {
+      setState(() => _currentStep++);
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutQuad,
+      );
+    } else {
+      _salvar();
+    }
+  }
+
+  void _voltarPasso() {
+    if (_currentStep > 0) {
+      HapticFeedback.lightImpact();
+      setState(() => _currentStep--);
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutQuad,
+      );
+    }
+  }
+
+  Future<void> _salvar() async {
+    // Validação final de segurança
+    if (_nomeController.text.isEmpty || _categoriaSelecionada == null) return;
+
+    final fardos = int.tryParse(_fardosController.text) ?? 0;
+    final avulsas = int.tryParse(_avulsasController.text) ?? 0;
 
     setState(() => _salvando = true);
     HapticFeedback.heavyImpact();
@@ -154,8 +186,8 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
         body: json.encode({
           'nome': _nomeController.text.trim(),
           'categoria': _categoriaSelecionada,
-          'fardos': _fardos,
-          'avulsas': _avulsas,
+          'fardos': fardos,
+          'avulsas': avulsas,
           'gerente_id': ApiService.conferenteId,
         }),
       );
@@ -186,109 +218,98 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
     return Scaffold(
       backgroundColor: pureBlack,
       body: SafeArea(
-        // Removido o Column e colocado o SingleChildScrollView diretamente
-        // para que o header role junto.
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24), // Padding ajustado
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                // === NOVO LOCAL DO HEADER ===
-                const SizedBox(height: 16), // Espaçamento do topo
-                _buildGlassHeader(),
-                const SizedBox(height: 24), // Espaçamento após o header
-                
-                ScaleTransition(
-                  scale: _cardScale,
-                  child: _buildWelcomeCard(),
-                ),
-                const SizedBox(height: 24),
-                _buildAnimatedFormCard(),
-                const SizedBox(height: 24),
-                _buildQuantitySection(),
-                const SizedBox(height: 32),
-                _buildNeonButton(),
-                const SizedBox(height: 24),
-              ],
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            _buildSmallHeader(), // Header reduzido e fixo
+            const SizedBox(height: 20),
+            _buildProgressIndicator(), // Bolinhas indicando o passo
+            const SizedBox(height: 20),
+            
+            // AQUI É ONDE A MÁGICA ACONTECE: PAGEVIEW
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(), // Bloqueia arrastar manual
+                children: [
+                  _buildStepContent(
+                    title: 'Qual o nome do Produto',
+                    subtitle: 'Digite o nome do produto como aparece na nota.',
+                    content: _buildNeumorphicField(
+                      controller: _nomeController,
+                      label: 'Nome do Produto',
+                      hint: 'Ex: Skol Lata 350ml',
+                      icon: Icons.edit_note_rounded,
+                      autoFocus: true,
+                    ),
+                  ),
+                  _buildStepContent(
+                    title: 'Qual a categoria?',
+                    subtitle: 'Selecione onde esse produto se encaixa.',
+                    content: _buildNeumorphicDropdown(),
+                  ),
+                  _buildStepContent(
+                    title: 'Quantidade inicial?',
+                    subtitle: 'Quantos itens você tem agora? (Opcional)',
+                    content: _buildQuantitySection(),
+                  ),
+                  _buildStepContent(
+                    title: 'Tudo certo?',
+                    subtitle: 'Confira os dados antes de salvar.',
+                    content: _buildSummaryCard(),
+                  ),
+                ],
+              ),
             ),
-          ),
+            
+            // BOTÕES DE AÇÃO NO RODAPÉ
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  _buildActionBtn(),
+                  if (_currentStep > 0) ...[
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _salvando ? null : _voltarPasso,
+                      child: Text(
+                        'Voltar',
+                        style: GoogleFonts.poppins(
+                          color: grayText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  ]
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildGlassHeader() {
+  // === WIDGETS AUXILIARES DO WIZARD ===
+
+  Widget _buildSmallHeader() {
     return FadeTransition(
       opacity: _headerFade,
       child: SlideTransition(
         position: _headerSlide,
-        // Container antigo tinha um margin de 20. 
-        // Eu removi o margin e mantive o padding horizontal no SingleChildScrollView.
-        // O padding vertical está aqui agora.
         child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                brightOrange.withOpacity(0.3), // REDUZIDO O BRILHO
-                neonOrange.withOpacity(0.15), // REDUZIDO O BRILHO
-              ],
-            ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: brightOrange.withOpacity(0.3), width: 2), // REDUZIDO
-            boxShadow: [
-              BoxShadow(
-                color: brightOrange.withOpacity(0.3), // REDUZIDO O BRILHO
-                blurRadius: 20, // REDUZIDO O BLUR
-                offset: const Offset(0, 10), // AJUSTADO O OFFSET
-              ),
-            ],
-          ),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [brightOrange, neonOrange]),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: brightOrange.withOpacity(0.5), // REDUZIDO O BRILHO
-                      blurRadius: 15, // REDUZIDO O BLUR
-                      offset: const Offset(0, 6), // AJUSTADO O OFFSET
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.rocket_launch_rounded, color: pureWhite, size: 36),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Novo Produto',
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: pureWhite,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Configure e adicione ao estoque',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: grayText,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+              Icon(Icons.rocket_launch_rounded, color: brightOrange, size: 24),
+              const SizedBox(width: 10),
+              Text(
+                'Novo Produto',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: pureWhite,
                 ),
               ),
             ],
@@ -298,268 +319,285 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
     );
   }
 
-  // ... (o resto do código _buildWelcomeCard, _buildAnimatedFormCard, etc., permanece o mesmo)
-
-  Widget _buildWelcomeCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            brightOrange.withOpacity(0.15),
-            neonOrange.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: brightOrange.withOpacity(0.4), width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: brightOrange.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(Icons.info_rounded, color: brightOrange, size: 28),
+  Widget _buildProgressIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(4, (index) {
+        bool isActive = index <= _currentStep;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          height: 6,
+          width: isActive ? 24 : 6,
+          decoration: BoxDecoration(
+            color: isActive ? brightOrange : borderGray,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isActive
+                ? [BoxShadow(color: brightOrange.withOpacity(0.4), blurRadius: 8)]
+                : [],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Preencha os campos abaixo para adicionar um novo produto ao seu inventário',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: grayText,
-                fontWeight: FontWeight.w500,
-                height: 1.5,
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      }),
     );
   }
 
-  Widget _buildAnimatedFormCard() {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: cardBlack,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: borderGray, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
+  Widget _buildStepContent({
+    required String title,
+    required String subtitle,
+    required Widget content,
+  }) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Informações Básicas', Icons.inventory_2_rounded),
-          const SizedBox(height: 24),
-          _buildNeumorphicField(
-            controller: _nomeController,
-            label: 'Nome do Produto',
-            hint: 'Ex: Skol Lata 350ml',
-            icon: Icons.shopping_bag_rounded,
-          ),
           const SizedBox(height: 20),
-          _buildNeumorphicDropdown(),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              color: pureWhite,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: grayText,
+            ),
+          ),
+          const SizedBox(height: 40),
+          content,
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildSummaryCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardBlack,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderGray),
+      ),
+      child: Column(
+        children: [
+          _buildSummaryRow('Nome', _nomeController.text),
+          const Divider(color: Color.fromARGB(255, 255, 255, 255), height: 32),
+          _buildSummaryRow('Categoria', _categoriaSelecionada ?? 'Não selecionado'),
+          const Divider(color: Color.fromARGB(255, 255, 255, 255), height: 32),
+          _buildSummaryRow('Fardos', _fardosController.text),
+          const SizedBox(height: 12),
+          _buildSummaryRow('Avulsas', _avulsasController.text),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [brightOrange, neonOrange]),
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-          ),
-          child: Icon(icon, color: pureWhite, size: 20),
-        ),
-        const SizedBox(width: 12),
         Text(
-          title,
+          label,
+          style: GoogleFonts.poppins(color: grayText, fontSize: 14),
+        ),
+        Text(
+          value,
           style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
             color: pureWhite,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
     );
   }
+
+  Widget _buildActionBtn() {
+    String label = _currentStep == 3 ? 'Finalizar e Salvar' : 'Avançar';
+    IconData icon = _currentStep == 3 ? Icons.check_circle_rounded : Icons.arrow_forward_rounded;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: 64,
+      decoration: BoxDecoration(
+        gradient: _salvando
+            ? null
+            : const LinearGradient(colors: [brightOrange, neonOrange]),
+        color: _salvando ? cardBlack : null,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: _salvando
+            ? null
+            : [
+                BoxShadow(color: brightOrange.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 5)),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _salvando ? null : _avancarPasso,
+          borderRadius: BorderRadius.circular(20),
+          child: Center(
+            child: _salvando
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 3, color: grayText),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        label,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: pureWhite,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(icon, color: pureWhite),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // === REUTILIZAÇÃO DOS SEUS WIDGETS ANTIGOS ===
+  // Mantive a lógica visual idêntica, apenas ajustada para contexto
 
   Widget _buildNeumorphicField({
     required TextEditingController controller,
     required String label,
     required String hint,
     required IconData icon,
+    bool autoFocus = false,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: grayText,
-            letterSpacing: 0.5,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: deepBlack,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderGray, width: 1),
+      ),
+      child: TextFormField(
+        controller: controller,
+        autofocus: autoFocus,
+        textCapitalization: TextCapitalization.words,
+        style: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: pureWhite,
         ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: deepBlack,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.poppins(color: grayText.withOpacity(0.5), fontSize: 16),
+          prefixIcon: Icon(icon, color: brightOrange, size: 22),
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: borderGray, width: 1),
-          ),
-          child: TextFormField(
-            controller: controller,
-            textCapitalization: TextCapitalization.words,
-            style: GoogleFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: pureWhite,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: GoogleFonts.poppins(
-                color: grayText.withOpacity(0.5),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              prefixIcon: Icon(icon, color: brightOrange, size: 22),
-              filled: true,
-              fillColor: Colors.transparent,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide(color: brightOrange, width: 2.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide(color: brightOrange, width: 2),
-              ),
-            ),
-            validator: (v) => v?.trim().isEmpty ?? true ? 'Campo obrigatório' : null,
+            borderSide: const BorderSide(color: brightOrange, width: 2),
           ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildNeumorphicDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Categoria',
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: grayText,
-            letterSpacing: 0.5,
+  return Container(
+    height: 64,
+    decoration: BoxDecoration(
+      color: deepBlack,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: borderGray, width: 1),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: ButtonTheme(
+        alignedDropdown: true,
+        child: DropdownButton<String>(
+          value: _categoriaSelecionada,
+          isExpanded: true,
+          dropdownColor: cardBlack,
+          icon: const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Icon(Icons.arrow_drop_down_circle_rounded, color: brightOrange, size: 26),
           ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: deepBlack,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: borderGray, width: 1),
-          ),
-          child: DropdownButtonFormField<String>(
-            value: _categoriaSelecionada,
-            isExpanded: true,
-            style: GoogleFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: pureWhite,
-            ),
-            dropdownColor: cardBlack,
-            icon: Icon(Icons.arrow_drop_down_circle_rounded, color: brightOrange, size: 26),
-            decoration: InputDecoration(
-              hintText: _carregando ? 'Carregando...' : 'Selecione',
-              hintStyle: GoogleFonts.poppins(
-                color: grayText.withOpacity(0.5),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              _carregando ? 'Carregando...' : 'Selecione a categoria',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: pureWhite.withOpacity(0.85),
               ),
-              prefixIcon: Icon(Icons.category_rounded, color: brightOrange, size: 22),
-              filled: true,
-              fillColor: Colors.transparent,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              border: InputBorder.none,
             ),
-            items: _categorias
-                .map((cat) => DropdownMenuItem<String>(
-                      value: cat['name'] as String,
-                      child: Text(cat['name'] as String),
-                    ))
-                .toList(),
-            onChanged: (value) => setState(() => _categoriaSelecionada = value),
-            validator: (v) => v == null || v.isEmpty ? 'Selecione uma categoria' : null,
           ),
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: pureWhite,
+          ),
+          items: _categorias.map((cat) {
+            return DropdownMenuItem<String>(
+              value: cat['name'],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  cat['name'],
+                  style: GoogleFonts.poppins(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: pureWhite,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _categoriaSelecionada = value),
         ),
-      ],
-    );
-  }
+      ),
+    ),
+  );
+}
 
   Widget _buildQuantitySection() {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: cardBlack,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: borderGray, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildSectionHeader('Quantidade', Icons.analytics_rounded),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _buildGlowingQuantityCard(
-                  label: 'Fardos',
-                  controller: _fardosController,
-                  icon: Icons.apps_rounded,
-                  gradient: [brightOrange, neonOrange],
-                ),
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildGlowingQuantityCard(
+                label: 'Fardos',
+                controller: _fardosController,
+                icon: Icons.apps_rounded,
+                gradient: [brightOrange, neonOrange],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildGlowingQuantityCard(
-                  label: 'Unidades',
-                  controller: _avulsasController,
-                  icon: Icons.shopping_basket_rounded,
-                  gradient: [neonOrange, softOrange],
-                ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildGlowingQuantityCard(
+                label: 'Unidades',
+                controller: _avulsasController,
+                icon: Icons.shopping_basket_rounded,
+                gradient: [neonOrange, softOrange],
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -578,18 +616,11 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: gradient[0].withOpacity(0.5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: gradient[0].withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: gradient.map((c) => c.withOpacity(0.25)).toList()),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -597,112 +628,45 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: gradient[0], size: 20),
-                const SizedBox(width: 8),
+                Icon(icon, color: gradient[0], size: 18),
+                const SizedBox(width: 6),
                 Text(
                   label,
                   style: GoogleFonts.poppins(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: pureWhite,
-                    letterSpacing: 0.5,
                   ),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
             child: TextFormField(
               controller: controller,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
-                fontSize: 52,
+                fontSize: 40,
                 fontWeight: FontWeight.w900,
                 color: gradient[0],
-                height: 1,
+                height: 5,
               ),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: '0',
                 hintStyle: GoogleFonts.poppins(
                   color: gradient[0].withOpacity(0.2),
-                  fontSize: 52,
+                  fontSize: 40,
                   fontWeight: FontWeight.w900,
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
-              validator: (v) {
-                final val = int.tryParse(v ?? '0');
-                if (val == null || val < 0) return 'Inválido';
-                return null;
-              },
               onChanged: (v) => setState(() {}),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNeonButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      height: 68,
-      decoration: BoxDecoration(
-        gradient: _salvando
-            ? null
-            : const LinearGradient(colors: [brightOrange, neonOrange]),
-        color: _salvando ? cardBlack : null,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: _salvando
-            ? null
-            : [
-                BoxShadow(color: brightOrange.withOpacity(0.9), blurRadius: 40, spreadRadius: 2),
-                BoxShadow(color: neonOrange.withOpacity(0.7), blurRadius: 60, offset: const Offset(0, 20)),
-              ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _salvando ? null : _salvar,
-          borderRadius: BorderRadius.circular(24),
-          child: Center(
-            child: _salvando
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 3, color: grayText),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(
-                        'Processando...',
-                        style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: grayText),
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.check_circle_rounded, color: pureWhite, size: 28),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Adicionar Produto',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: pureWhite,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
       ),
     );
   }
@@ -713,7 +677,7 @@ class _AdicionarProdutoScreenState extends State<AdicionarProdutoScreen>
     _fardosController.dispose();
     _avulsasController.dispose();
     _headerController.dispose();
-    _cardController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 }

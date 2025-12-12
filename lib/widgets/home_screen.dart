@@ -172,12 +172,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // DEFINIÇÃO DOS MÉTODOS DE LÓGICA (Anteriormente apenas chamados)
-  void _agruparPorCategoria() {
-    categoriasMap.clear();
-    for (var p in produtos) {
-      categoriasMap.putIfAbsent(p.categoria, () => []).add(p);
-    }
+void _agruparPorCategoria() {
+  categoriasMap.clear();
+  
+  // Primeiro: agrupa tudo usando chave limpa
+  final Map<String, List<Produto>> tempMap = {};
+  final Map<String, String> nomeBonito = {};
+
+  for (var p in produtos) {
+    final chave = p.categoria
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[áàãâ]'), 'a')
+        .replaceAll(RegExp(r'[éèê]'), 'e')
+        .replaceAll(RegExp(r'[íì]'), 'i')
+        .replaceAll(RegExp(r'[óòõô]'), 'o')
+        .replaceAll(RegExp(r'[úù]'), 'u')
+        .replaceAll('ç', 'c');
+
+    tempMap.putIfAbsent(chave, () => []).add(p);
+    nomeBonito[chave] = p.categoria; // pega o último (ou o primeiro, tanto faz)
   }
+
+  // Agora monta o mapa final com nome bonito como chave
+  for (final entry in tempMap.entries) {
+    categoriasMap[nomeBonito[entry.key]!] = entry.value;
+  }
+}
 
   void _calcularTotais() {
     totalFardos = produtos.fold(0, (sum, p) => sum + p.fardos);
