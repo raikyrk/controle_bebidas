@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui'; // Necessário para BackdropFilter
 import '../../api_service.dart';
 import '../../produto.dart';
 import 'checagem_screen.dart';
@@ -30,19 +31,18 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // === PALETA FIRE MODE ===
+  static const Color pureBlack = Color(0xFF000000);
+  static const Color cardBlack = Color(0xFF1A1A1A);
+  static const Color brightOrange = Color(0xFFFF4500);
+  static const Color neonOrange = Color(0xFFFF6B00);
+  static const Color cyanNeon = Color(0xFF00E5FF); // Para Avulsas
+  static const Color pureWhite = Color(0xFFFFFFFF);
+  static const Color grayText = Color(0xFFAAAAAA);
+  static const Color borderGray = Color(0xFF333333);
+  static const Color dangerRed = Color(0xFFFF3333);
 
-  static const Color primaryOrange = Color(0xFFFF6B35);
-  static const Color lightOrange = Color(0xFFFF8C42);
-  static const Color deepOrange = Color(0xFFE85A2D);
-  static const Color lightGray = Color(0xFFF8F9FA);
-  static const Color textLight = Color(0xFF6C757D);
-  static const Color dangerRed = Color(0xFFE74C3C);
-  static const Color darkText = Color(0xFF2C3E50);
-  static const Color cardWhite = Colors.white;
-  static const Color successGreen = Color(0xFF27AE60);
-  static const Color accentBlue = Color(0xFF3498DB);
-
-
+  // Mantive seus ícones
   final Map<String, IconData> lojaIcons = {
     'Silviano': Icons.storefront_rounded,
     'Prudente': Icons.shopping_bag_rounded,
@@ -62,28 +62,25 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     'Lagoa Santa': Icons.store_outlined,
   };
 
-
+  // Gradients adaptados para brilhar no escuro
   final List<List<Color>> lojaGradients = [
-    [Color(0xFFFF6B35), Color(0xFFFF8C42)],
-    [Color(0xFF3498DB), Color(0xFF5DADE2)],
-    [Color(0xFF9B59B6), Color(0xFFBB8FCE)],
-    [Color(0xFFE74C3C), Color(0xFFEC7063)],
-    [Color(0xFF27AE60), Color(0xFF58D68D)],
-    [Color(0xFFF39C12), Color(0xFFF8C471)],
-    [Color(0xFF1ABC9C), Color(0xFF48C9B0)],
-    [Color(0xFFE67E22), Color(0xFFEB984E)],
+    [Color(0xFFFF4500), Color(0xFFFF6B00)], // Laranja
+    [Color(0xFF2979FF), Color(0xFF448AFF)], // Azul
+    [Color(0xFFD500F9), Color(0xFFE040FB)], // Roxo
+    [Color(0xFFFF1744), Color(0xFFFF5252)], // Vermelho
+    [Color(0xFF00E676), Color(0xFF69F0AE)], // Verde
+    [Color(0xFFFFC400), Color(0xFFFFD740)], // Amarelo
+    [Color(0xFF1DE9B6), Color(0xFF64FFDA)], // Teal
+    [Color(0xFFFF9100), Color(0xFFFFAB40)], // Laranja Claro
   ];
 
   @override
   void initState() {
     super.initState();
-    
-
     _fabAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-
 
     _pageAnimationController = AnimationController(
       vsync: this,
@@ -91,20 +88,14 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _pageAnimationController,
-        curve: Curves.easeOut,
-      ),
+      CurvedAnimation(parent: _pageAnimationController, curve: Curves.easeOut),
     );
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
     ).animate(
-      CurvedAnimation(
-        parent: _pageAnimationController,
-        curve: Curves.easeOutCubic,
-      ),
+      CurvedAnimation(parent: _pageAnimationController, curve: Curves.easeOutCubic),
     );
 
     _carregarDados();
@@ -147,44 +138,38 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
       }
     } catch (e) {
       if (mounted) {
-        _mostrarSnackBar(
-          'Erro ao carregar dados',
-          dangerRed,
-          Icons.error_outline_rounded,
-        );
+        _mostrarSnackBar('Erro ao carregar dados', dangerRed, Icons.error_outline);
         setState(() => isLoading = false);
       }
     }
   }
 
   Future<List<Map<String, dynamic>>> _carregarLojas() async {
-  try {
-    final response = await http.get(Uri.parse('${ApiService.baseUrl}/get_lojas.php'));
-    if (response.statusCode == 200) {
-      final List jsonResponse = json.decode(response.body) as List;
-      final List<Map<String, dynamic>> lojas = jsonResponse
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-
-
-      lojas.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
-
-      return lojas;
+    try {
+      final response = await http.get(Uri.parse('${ApiService.baseUrl}/get_lojas.php'));
+      if (response.statusCode == 200) {
+        final List jsonResponse = json.decode(response.body) as List;
+        final List<Map<String, dynamic>> lojas = jsonResponse
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        lojas.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+        return lojas;
+      }
+    } catch (e) {
+      debugPrint('Erro: $e');
     }
-  } catch (e) {
-    debugPrint('Erro ao carregar lojas: $e');
+    // Fallback
+    final fallback = <Map<String, dynamic>>[];
+    final nomes = ['Silviano', 'Prudente', 'Belvedere', 'Pampulha', 'Mangabeiras', 'Delivery', 'Castelo', 'Barreiro', 'Eldorado', 'Silva Lobo', 'Buritis', 'Cidade Nova', 'Afonsos', 'Ouro Preto', 'Sion', 'Lagoa Santa'];
+    for (int i = 0; i < nomes.length; i++) {
+      fallback.add({'id': i + 1, 'nome': nomes[i]});
+    }
+    return fallback;
   }
-
-
-  final fallback = <Map<String, dynamic>>[];
-  final nomes = ['Silviano','Prudente','Belvedere','Pampulha','Mangabeiras','Delivery','Castelo','Barreiro','Eldorado','Silva Lobo','Buritis','Cidade Nova','Afonsos','Ouro Preto','Sion','Lagoa Santa'];
-  for (int i = 0; i < nomes.length; i++) {
-    fallback.add({'id': i + 1, 'nome': nomes[i]});
-  }
-  return fallback; 
-}
 
   void _adicionarComLimite(int produtoId, String tipo) {
+    // Lógica mantida, apenas removi o "setState" excessivo pois usaremos ValueNotifier na próxima otimização se precisar
+    // Por enquanto, setState é necessário para atualizar a UI desta tela
     final produto = produtos.firstWhere((p) => p.id == produtoId);
     final noCarrinho = CarrinhoExpedicao.itens[produtoId] ?? {'f': 0, 'a': 0};
 
@@ -192,19 +177,12 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
     int jaNoCarrinho = tipo == 'f' ? (noCarrinho['f'] ?? 0) : (noCarrinho['a'] ?? 0);
 
     if (jaNoCarrinho >= estoqueDisponivel) {
-      _mostrarSnackBar(
-        'Sem mais ${tipo == 'f' ? 'fardos' : 'avulsas'} disponíveis!',
-        dangerRed,
-        Icons.warning_rounded,
-      );
+      _mostrarSnackBar('Limite de estoque atingido!', dangerRed, Icons.warning_amber_rounded);
       return;
     }
 
     CarrinhoExpedicao.adicionar(produtoId, tipo);
-    
-
-    
-    setState(() {});
+    setState(() {}); // Atualiza a tela
 
     if (CarrinhoExpedicao.totalItens == 1) {
       _fabAnimationController.reset();
@@ -222,32 +200,22 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
       SnackBar(
         content: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
+            Icon(icon, color: pureWhite, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 mensagem,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: pureWhite),
               ),
             ),
           ],
         ),
-        backgroundColor: cor,
+        backgroundColor: cardBlack,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: cor.withOpacity(0.5)),
+        ),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(16),
-        elevation: 8,
-        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -255,11 +223,11 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: lightGray,
+      backgroundColor: pureBlack,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildFireHeader(),
             Expanded(
               child: isLoading
                   ? _buildLoadingState()
@@ -273,223 +241,541 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
         ),
       ),
       floatingActionButton: CarrinhoExpedicao.totalItens > 0
-          ? ScaleTransition(
-              scale: CurvedAnimation(
-                parent: _fabAnimationController,
-                curve: Curves.elasticOut,
-              ),
-              child: FloatingActionButton.extended(
-                backgroundColor: primaryOrange,
-                elevation: 12,
-                onPressed: () {
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => ChecagemScreen(
-                        lojaId: lojaSelecionadaId!,
-                        lojaNome: lojaSelecionadaNome!,
-                      ),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.1),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutCubic,
-                            )),
-                            child: child,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-                icon: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.playlist_add_check_rounded, size: 24),
-                ),
-                label: Text(
-                  'Checagem (${CarrinhoExpedicao.totalItens})',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-            )
+          ? _buildNeonFAB()
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _buildHeader() {
-    final isTablet = MediaQuery.of(context).size.width > 600;
-    
+  // ===================================
+  // 🔥 HEADER FIRE MODE
+  // ===================================
+  Widget _buildFireHeader() {
     return Container(
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [cardWhite, lightGray],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 32 : 24, 
-        vertical: isTablet ? 28 : 24,
+        color: pureBlack,
+        border: Border(bottom: BorderSide(color: borderGray, width: 1)),
       ),
       child: Row(
         children: [
-          // Ícone principal com animação
-          Hero(
-            tag: 'expedicao_icon',
-            child: Container(
-              padding: EdgeInsets.all(isTablet ? 16 : 14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [primaryOrange, lightOrange],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryOrange.withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.local_shipping_rounded, 
-                color: Colors.white, 
-                size: isTablet ? 36 : 32,
-              ),
+          // Ícone Principal (Caminhão)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: brightOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: brightOrange.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: brightOrange.withOpacity(0.2),
+                  blurRadius: 15,
+                  spreadRadius: -5,
+                )
+              ],
             ),
+            child: Icon(Icons.local_shipping_rounded, color: brightOrange, size: 28),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 16),
+          
+          // Texto Dinâmico
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Expedição',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w900,
-                    fontSize: isTablet ? 30 : 26,
-                    color: darkText,
-                    letterSpacing: -0.5,
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: pureWhite,
+                    height: 1.1,
                   ),
                 ),
                 if (lojaSelecionadaNome != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 6),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 14 : 12, 
-                      vertical: isTablet ? 8 : 6,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          primaryOrange.withOpacity(0.1),
-                          lightOrange.withOpacity(0.1),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: primaryOrange.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          lojaIcons[lojaSelecionadaNome] ?? Icons.store_rounded,
-                          size: isTablet ? 18 : 16,
-                          color: primaryOrange,
-                        ),
-                        const SizedBox(width: 6),
                         Text(
                           lojaSelecionadaNome!,
-                          style: GoogleFonts.inter(
-                            fontSize: isTablet ? 16 : 14,
-                            color: primaryOrange,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: GoogleFonts.inter(color: brightOrange, fontWeight: FontWeight.w600, fontSize: 13),
                         ),
+                        if (categoriaSelecionada != null) ...[
+                          Icon(Icons.chevron_right, color: grayText, size: 16),
+                          Expanded(
+                            child: Text(
+                              categoriaSelecionada!,
+                              style: GoogleFonts.inter(color: grayText, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ]
                       ],
                     ),
                   ),
               ],
             ),
           ),
+
+          // Botão Trocar Loja (só aparece se loja selecionada)
           if (lojaSelecionadaId != null)
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  setState(() {
-                    lojaSelecionadaId = null;
-                    lojaSelecionadaNome = null;
-                    categoriaSelecionada = null;
-                    CarrinhoExpedicao.limpar();
-                  });
-                  _pageAnimationController.reset();
-                  _pageAnimationController.forward();
-                },
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isTablet ? 20 : 18, 
-                    vertical: isTablet ? 14 : 12,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        primaryOrange.withOpacity(0.1),
-                        lightOrange.withOpacity(0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: primaryOrange.withOpacity(0.5), width: 1.5),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.swap_horiz_rounded, 
-                        color: primaryOrange, 
-                        size: isTablet ? 22 : 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Trocar',
-                        style: GoogleFonts.inter(
-                          color: primaryOrange,
-                          fontWeight: FontWeight.w700,
-                          fontSize: isTablet ? 16 : 14,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  lojaSelecionadaId = null;
+                  lojaSelecionadaNome = null;
+                  categoriaSelecionada = null;
+                  CarrinhoExpedicao.limpar();
+                });
+                _pageAnimationController.reset();
+                _pageAnimationController.forward();
+              },
+              icon: Icon(Icons.swap_horiz_rounded, color: grayText),
+              tooltip: 'Trocar Loja',
+            )
+        ],
+      ),
+    );
+  }
+
+  // ===================================
+  // 🏪 SELEÇÃO DE LOJA (DARK GRID)
+  // ===================================
+  Widget _buildSelecaoLoja() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+              child: Text(
+                'Selecione o Destino',
+                style: GoogleFonts.inter(fontSize: 16, color: grayText, fontWeight: FontWeight.w600),
               ),
             ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                physics: const BouncingScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.1,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: lojas.length,
+                itemBuilder: (_, i) {
+                  final loja = lojas[i];
+                  final gradient = lojaGradients[i % lojaGradients.length];
+                  
+                  return _buildDarkCard(
+                    onTap: () {
+                      setState(() {
+                        lojaSelecionadaId = loja['id'];
+                        lojaSelecionadaNome = loja['nome'];
+                        CarrinhoExpedicao.limpar();
+                      });
+                      _pageAnimationController.reset();
+                      _pageAnimationController.forward();
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Ícone com Glow
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [gradient[0].withOpacity(0.2), gradient[1].withOpacity(0.05)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(color: gradient[0].withOpacity(0.3)),
+                            boxShadow: [
+                              BoxShadow(color: gradient[0].withOpacity(0.15), blurRadius: 20, spreadRadius: -5),
+                            ]
+                          ),
+                          child: Icon(lojaIcons[loja['nome']] ?? Icons.store, color: gradient[0], size: 32),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          loja['nome'],
+                          style: GoogleFonts.inter(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold, 
+                            color: pureWhite
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===================================
+  // 📦 GRID CATEGORIAS (DARK)
+  // ===================================
+  Widget _buildGridCategorias() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+              child: Text(
+                'O que vamos enviar?',
+                style: GoogleFonts.inter(fontSize: 16, color: grayText, fontWeight: FontWeight.w600),
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                physics: const BouncingScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.0, // Quadrado perfeito
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: categoriasMap.length,
+                itemBuilder: (_, i) {
+                  final cat = categoriasMap.keys.elementAt(i);
+                  final produtosCat = categoriasMap[cat]!;
+                  final totalItens = produtosCat.fold(0, (s, p) => s + p.fardos + p.avulsas);
+                  
+                  return _buildDarkCard(
+                    onTap: () {
+                      setState(() => categoriaSelecionada = cat);
+                      _pageAnimationController.reset();
+                      _pageAnimationController.forward();
+                    },
+                    child: Stack(
+                      children: [
+                        // Marca d'água
+                        Positioned(
+                          right: -10,
+                          bottom: -10,
+                          child: Icon(Icons.category, size: 80, color: pureWhite.withOpacity(0.03)),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Icon(Icons.inventory_2_outlined, color: brightOrange, size: 30),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    cat,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16, fontWeight: FontWeight.w700, color: pureWhite, height: 1.2
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$totalItens itens',
+                                    style: GoogleFonts.inter(fontSize: 12, color: grayText),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===================================
+  // 📝 LISTA DE PRODUTOS (CONTROL PANEL STYLE)
+  // ===================================
+  Widget _buildListaProdutos() {
+    final lista = categoriasMap[categoriaSelecionada] ?? [];
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Column(
+        children: [
+          // Botão voltar inline
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: GestureDetector(
+              onTap: () {
+                setState(() => categoriaSelecionada = null);
+                _pageAnimationController.reset();
+                _pageAnimationController.forward();
+              },
+              child: Row(
+                children: [
+                  Icon(Icons.arrow_back, color: brightOrange, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Voltar para categorias', style: GoogleFonts.inter(color: brightOrange, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+          
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+              physics: const BouncingScrollPhysics(),
+              itemCount: lista.length,
+              itemBuilder: (_, i) {
+                final p = lista[i];
+                final qtd = CarrinhoExpedicao.itens[p.id] ?? {'f': 0, 'a': 0};
+                final temNoCarrinho = qtd['f']! > 0 || qtd['a']! > 0;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: cardBlack,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: temNoCarrinho ? brightOrange.withOpacity(0.5) : borderGray,
+                      width: 1
+                    ),
+                    boxShadow: [
+                      if (temNoCarrinho)
+                        BoxShadow(color: brightOrange.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 4))
+                    ]
+                  ),
+                  child: Column(
+                    children: [
+                      // Header do Produto
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: pureBlack,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: borderGray),
+                              ),
+                              child: Icon(Icons.inventory_2_rounded, color: pureWhite, size: 24),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                p.nome,
+                                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: pureWhite),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      Divider(color: borderGray, height: 1),
+
+                      // Controles (Lado a Lado)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            // Controle Fardos
+                            Expanded(
+                              child: _buildControlCapsule(
+                                label: 'FARDOS',
+                                count: qtd['f']!,
+                                max: p.fardos,
+                                color: brightOrange,
+                                onAdd: () => _adicionarComLimite(p.id, 'f'),
+                                onRemove: () => _remover(p.id, 'f'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Controle Avulsas
+                            Expanded(
+                              child: _buildControlCapsule(
+                                label: 'AVULSAS',
+                                count: qtd['a']!,
+                                max: p.avulsas,
+                                color: cyanNeon,
+                                onAdd: () => _adicionarComLimite(p.id, 'a'),
+                                onRemove: () => _remover(p.id, 'a'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  // Widget Auxiliar: Cápsula de Controle
+  Widget _buildControlCapsule({
+    required String label,
+    required int count,
+    required int max,
+    required Color color,
+    required VoidCallback onAdd,
+    required VoidCallback onRemove,
+  }) {
+    final isActive = count > 0;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: pureBlack,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isActive ? color.withOpacity(0.5) : borderGray,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isActive ? color : grayText, letterSpacing: 1),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildMiniButton(Icons.remove, onRemove, isActive),
+              Text(
+                '$count',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 20, 
+                  fontWeight: FontWeight.bold, 
+                  color: isActive ? pureWhite : grayText
+                ),
+              ),
+              _buildMiniButton(Icons.add, onAdd, count < max),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Max: $max',
+            style: GoogleFonts.inter(fontSize: 10, color: grayText.withOpacity(0.5)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniButton(IconData icon, VoidCallback onTap, bool enabled) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: enabled ? borderGray : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? pureWhite : borderGray),
+      ),
+    );
+  }
+
+  // ===================================
+  // 🧩 WIDGETS GENÉRICOS DARK
+  // ===================================
+  Widget _buildDarkCard({required Widget child, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardBlack,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderGray),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNeonFAB() {
+    return ScaleTransition(
+      scale: CurvedAnimation(parent: _fabAnimationController, curve: Curves.elasticOut),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: brightOrange.withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) => ChecagemScreen(
+                    lojaId: lojaSelecionadaId!,
+                    lojaNome: lojaSelecionadaNome!,
+                  ),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [brightOrange, neonOrange]),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.playlist_add_check_rounded, color: pureWhite),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Revisar (${CarrinhoExpedicao.totalItens})',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: pureWhite),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -499,1094 +785,11 @@ class _ExpedicaoScreenState extends State<ExpedicaoScreen> with TickerProviderSt
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: cardWhite,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryOrange.withOpacity(0.1),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        primaryOrange.withOpacity(0.1),
-                        lightOrange.withOpacity(0.1),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  width: 50,
-                  height: 50,
-                  child: CircularProgressIndicator(
-                    color: primaryOrange,
-                    strokeWidth: 4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Carregando dados',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              color: darkText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Aguarde um momento...',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: textLight,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          const CircularProgressIndicator(color: brightOrange),
+          const SizedBox(height: 16),
+          Text('Carregando...', style: GoogleFonts.inter(color: grayText)),
         ],
       ),
-    );
-  }
-
-  Widget _buildSelecaoLoja() {
-    final isTablet = MediaQuery.of(context).size.width > 600;
-    
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                isTablet ? 32 : 24, 
-                isTablet ? 36 : 32, 
-                isTablet ? 32 : 24, 
-                isTablet ? 28 : 24,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          primaryOrange.withOpacity(0.1),
-                          lightOrange.withOpacity(0.1),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.storefront_rounded, 
-                      size: isTablet ? 48 : 40, 
-                      color: primaryOrange,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Selecione a Loja',
-                    style: GoogleFonts.inter(
-                      fontSize: isTablet ? 36 : 32,
-                      fontWeight: FontWeight.w900,
-                      color: darkText,
-                      letterSpacing: -1,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Escolha uma loja para iniciar o processo de expedição',
-                    style: GoogleFonts.inter(
-                      fontSize: isTablet ? 17 : 15,
-                      color: textLight,
-                      fontWeight: FontWeight.w500,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: GridView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  isTablet ? 32 : 24, 
-                  8, 
-                  isTablet ? 32 : 24, 
-                  100, // Espaço extra no bottom para não sobrepor o FAB
-                ),
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width > 1200 
-                      ? 5 
-                      : MediaQuery.of(context).size.width > 800 
-                          ? 4 
-                          : MediaQuery.of(context).size.width > 600 
-                              ? 3 
-                              : 2,
-                  childAspectRatio: isTablet ? 0.88 : 1.0, // Ajustado para tablet
-                  crossAxisSpacing: isTablet ? 20 : 16,
-                  mainAxisSpacing: isTablet ? 20 : 16,
-                ),
-                itemCount: lojas.length,
-                itemBuilder: (_, i) {
-                  final loja = lojas[i];
-                  final lojaId = loja['id'] as int;
-                  final lojaNome = loja['nome'] as String;
-                  final icon = lojaIcons[lojaNome] ?? Icons.store_rounded;
-                  final gradient = lojaGradients[i % lojaGradients.length];
-
-                  return TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 300 + (i * 50)),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, child) {
-                      return Transform.scale(
-                        scale: value,
-                        child: Opacity(
-                          opacity: value,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () {
-                          setState(() {
-                            lojaSelecionadaId = lojaId;
-                            lojaSelecionadaNome = lojaNome;
-                            CarrinhoExpedicao.limpar();
-                          });
-                          _pageAnimationController.reset();
-                          _pageAnimationController.forward();
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                cardWhite,
-                                Colors.grey.shade50,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Colors.grey.withOpacity(0.15),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(isTablet ? 20 : 18),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: gradient,
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: gradient[0].withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  icon,
-                                  size: isTablet ? 42 : 36,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: isTablet ? 18 : 16),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: isTablet ? 14 : 12),
-                                child: Text(
-                                  lojaNome,
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: isTablet ? 17 : 15,
-                                    color: darkText,
-                                    letterSpacing: 0.2,
-                                    height: 1.2,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isTablet ? 12 : 10, 
-                                  vertical: isTablet ? 6 : 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: lightGray,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'ID: $lojaId',
-                                  style: GoogleFonts.inter(
-                                    fontSize: isTablet ? 13 : 11,
-                                    color: textLight,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGridCategorias() {
-    final isTablet = MediaQuery.of(context).size.width > 600;
-    
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                isTablet ? 32 : 24, 
-                isTablet ? 36 : 32, 
-                isTablet ? 32 : 24, 
-                isTablet ? 28 : 24,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          primaryOrange.withOpacity(0.1),
-                          lightOrange.withOpacity(0.1),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.category_rounded, 
-                      size: isTablet ? 48 : 40, 
-                      color: primaryOrange,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Categorias',
-                    style: GoogleFonts.inter(
-                      fontSize: isTablet ? 36 : 32,
-                      fontWeight: FontWeight.w900,
-                      color: darkText,
-                      letterSpacing: -1,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${categoriasMap.length} categorias disponíveis',
-                    style: GoogleFonts.inter(
-                      fontSize: isTablet ? 17 : 15,
-                      color: textLight,
-                      fontWeight: FontWeight.w500,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: GridView.builder(
-                padding: EdgeInsets.fromLTRB(
-                  isTablet ? 32 : 24, 
-                  8, 
-                  isTablet ? 32 : 24, 
-                  100, // Espaço extra no bottom para não sobrepor o FAB
-                ),
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width > 1200 
-                      ? 5 
-                      : MediaQuery.of(context).size.width > 800 
-                          ? 4 
-                          : MediaQuery.of(context).size.width > 600 
-                              ? 3 
-                              : 2,
-                  childAspectRatio: isTablet ? 0.92 : 1.05, // Ajustado para tablet
-                  crossAxisSpacing: isTablet ? 20 : 16,
-                  mainAxisSpacing: isTablet ? 20 : 16,
-                ),
-                itemCount: categoriasMap.length,
-                itemBuilder: (_, i) {
-                  final cat = categoriasMap.keys.elementAt(i);
-                  final produtos = categoriasMap[cat]!;
-                  final total = produtos.fold(0, (s, p) => s + p.fardos + p.avulsas);
-                  final gradient = lojaGradients[i % lojaGradients.length];
-
-                  return TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 300 + (i * 50)),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, child) {
-                      return Transform.scale(
-                        scale: value,
-                        child: Opacity(
-                          opacity: value,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () {
-                          setState(() => categoriaSelecionada = cat);
-                          _pageAnimationController.reset();
-                          _pageAnimationController.forward();
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                cardWhite,
-                                Colors.grey.shade50,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Colors.grey.withOpacity(0.15),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Stack(
-                            children: [
-                              // Badge de contagem no canto superior direito
-                              Positioned(
-                                top: 12,
-                                right: 12,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isTablet ? 12 : 10, 
-                                    vertical: isTablet ? 8 : 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(colors: gradient),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: gradient[0].withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    '$total',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: isTablet ? 15 : 13,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(isTablet ? 20 : 18),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          gradient[0].withOpacity(0.15),
-                                          gradient[1].withOpacity(0.15),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Icon(
-                                      Icons.inventory_2_rounded,
-                                      size: isTablet ? 46 : 40,
-                                      color: gradient[0],
-                                    ),
-                                  ),
-                                  SizedBox(height: isTablet ? 18 : 16),
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: isTablet ? 18 : 16),
-                                    child: Text(
-                                      cat,
-                                      style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: isTablet ? 17 : 15,
-                                        color: darkText,
-                                        letterSpacing: 0.2,
-                                        height: 1.2,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '${produtos.length} produto${produtos.length != 1 ? 's' : ''}',
-                                    style: GoogleFonts.inter(
-                                      fontSize: isTablet ? 14 : 12,
-                                      color: textLight,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildListaProdutos() {
-    final lista = categoriasMap[categoriaSelecionada] ?? [];
-    final isTablet = MediaQuery.of(context).size.width > 600;
-
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Column(
-        children: [
-          // Header da categoria com botão de voltar
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 32 : 24, 
-              vertical: isTablet ? 24 : 20,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [cardWhite, lightGray],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 15,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      setState(() => categoriaSelecionada = null);
-                      _pageAnimationController.reset();
-                      _pageAnimationController.forward();
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(isTablet ? 14 : 12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primaryOrange.withOpacity(0.1),
-                            lightOrange.withOpacity(0.1),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: primaryOrange.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_rounded,
-                        color: primaryOrange,
-                        size: isTablet ? 26 : 22,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        categoriaSelecionada!,
-                        style: GoogleFonts.inter(
-                          fontSize: isTablet ? 26 : 22,
-                          fontWeight: FontWeight.w900,
-                          color: darkText,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isTablet ? 10 : 8, 
-                              vertical: isTablet ? 6 : 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: successGreen.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: successGreen.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  size: isTablet ? 16 : 14,
-                                  color: successGreen,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${lista.length} disponíveis',
-                                  style: GoogleFonts.inter(
-                                    fontSize: isTablet ? 14 : 12,
-                                    color: successGreen,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Lista de produtos
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.fromLTRB(
-                isTablet ? 32 : 24, 
-                isTablet ? 28 : 24, 
-                isTablet ? 32 : 24, 
-                100, // Espaço extra no bottom para não sobrepor o FAB
-              ),
-              physics: const BouncingScrollPhysics(),
-              itemCount: lista.length,
-              itemBuilder: (_, i) {
-                final p = lista[i];
-                final qtd = CarrinhoExpedicao.itens[p.id] ?? {'f': 0, 'a': 0};
-                final temNoCarrinho = qtd['f']! > 0 || qtd['a']! > 0;
-
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: Duration(milliseconds: 300 + (i * 30)),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 20 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
-                    decoration: BoxDecoration(
-                      gradient: temNoCarrinho
-                          ? LinearGradient(
-                              colors: [
-                                primaryOrange.withOpacity(0.05),
-                                lightOrange.withOpacity(0.05),
-                              ],
-                            )
-                          : null,
-                      color: temNoCarrinho ? null : cardWhite,
-                      borderRadius: BorderRadius.circular(24),
-                      border: temNoCarrinho 
-                          ? Border.all(color: primaryOrange, width: 2)
-                          : Border.all(color: Colors.grey.withOpacity(0.15), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: temNoCarrinho 
-                              ? primaryOrange.withOpacity(0.2)
-                              : Colors.black.withOpacity(0.08),
-                          blurRadius: temNoCarrinho ? 20 : 15,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(isTablet ? 24 : 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header do produto
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(isTablet ? 16 : 14),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: temNoCarrinho
-                                        ? [primaryOrange, lightOrange]
-                                        : [
-                                            primaryOrange.withOpacity(0.1),
-                                            lightOrange.withOpacity(0.1),
-                                          ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: temNoCarrinho
-                                      ? [
-                                          BoxShadow(
-                                            color: primaryOrange.withOpacity(0.3),
-                                            blurRadius: 12,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ]
-                                      : null,
-                                ),
-                                child: Icon(
-                                  Icons.inventory_2_rounded,
-                                  color: temNoCarrinho ? Colors.white : primaryOrange,
-                                  size: isTablet ? 32 : 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      p.nome,
-                                      style: GoogleFonts.inter(
-                                        fontSize: isTablet ? 20 : 18,
-                                        fontWeight: FontWeight.w900,
-                                        color: darkText,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    SizedBox(height: isTablet ? 10 : 8),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: [
-                                        _buildEstoqueBadge(
-                                          '${p.fardos}',
-                                          'fardos',
-                                          primaryOrange,
-                                          Icons.widgets_rounded,
-                                          isTablet,
-                                        ),
-                                        _buildEstoqueBadge(
-                                          '${p.avulsas}',
-                                          'avulsas',
-                                          accentBlue,
-                                          Icons.apps_rounded,
-                                          isTablet,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Indicador visual se tem no carrinho
-                              if (temNoCarrinho)
-                                Container(
-                                  padding: EdgeInsets.all(isTablet ? 12 : 10),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [primaryOrange, lightOrange],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: primaryOrange.withOpacity(0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    Icons.shopping_cart_rounded,
-                                    color: Colors.white,
-                                    size: isTablet ? 24 : 20,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          SizedBox(height: isTablet ? 24 : 20),
-                          // Controles de quantidade
-                          Container(
-                            padding: EdgeInsets.all(isTablet ? 22 : 18),
-                            decoration: BoxDecoration(
-                              color: lightGray,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: Colors.grey.withOpacity(0.1),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildQuantidadeRow(
-                                  'Fardos',
-                                  Icons.widgets_rounded,
-                                  qtd['f']!,
-                                  p.fardos,
-                                  primaryOrange,
-                                  () => _remover(p.id, 'f'),
-                                  () => _adicionarComLimite(p.id, 'f'),
-                                  isTablet,
-                                ),
-                                SizedBox(height: isTablet ? 20 : 16),
-                                Container(
-                                  height: 1,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.grey.withOpacity(0.2),
-                                        Colors.transparent,
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: isTablet ? 20 : 16),
-                                _buildQuantidadeRow(
-                                  'Avulsas',
-                                  Icons.apps_rounded,
-                                  qtd['a']!,
-                                  p.avulsas,
-                                  accentBlue,
-                                  () => _remover(p.id, 'a'),
-                                  () => _adicionarComLimite(p.id, 'a'),
-                                  isTablet,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEstoqueBadge(
-    String quantidade, 
-    String label, 
-    Color cor, 
-    IconData icon,
-    bool isTablet,
-  ) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 14 : 12, 
-        vertical: isTablet ? 10 : 8,
-      ),
-      decoration: BoxDecoration(
-        color: cor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: cor.withOpacity(0.3), width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: isTablet ? 18 : 16, color: cor),
-          const SizedBox(width: 6),
-          Text(
-            quantidade,
-            style: GoogleFonts.inter(
-              fontSize: isTablet ? 17 : 15,
-              fontWeight: FontWeight.w900,
-              color: cor,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: isTablet ? 14 : 12,
-              fontWeight: FontWeight.w600,
-              color: textLight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuantidadeRow(
-    String label,
-    IconData icon,
-    int quantidade,
-    int estoque,
-    Color cor,
-    VoidCallback onRemove,
-    VoidCallback onAdd,
-    bool isTablet,
-  ) {
-    final porcentagem = estoque > 0 ? (quantidade / estoque) : 0.0;
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(isTablet ? 12 : 10),
-              decoration: BoxDecoration(
-                color: cardWhite,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: cor.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: cor, size: isTablet ? 26 : 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                      fontSize: isTablet ? 18 : 16,
-                      color: darkText,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Estoque: $estoque',
-                    style: GoogleFonts.inter(
-                      fontSize: isTablet ? 14 : 12,
-                      color: textLight,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Botões de controle
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: quantidade > 0 ? onRemove : null,
-                child: Container(
-                  padding: EdgeInsets.all(isTablet ? 12 : 10),
-                  decoration: BoxDecoration(
-                    gradient: quantidade > 0
-                        ? LinearGradient(
-                            colors: [
-                              dangerRed.withOpacity(0.15),
-                              dangerRed.withOpacity(0.1),
-                            ],
-                          )
-                        : null,
-                    color: quantidade > 0 ? null : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(14),
-                    border: quantidade > 0
-                        ? Border.all(color: dangerRed.withOpacity(0.3), width: 1.5)
-                        : null,
-                  ),
-                  child: Icon(
-                    Icons.remove_rounded,
-                    color: quantidade > 0 ? dangerRed : Colors.grey,
-                    size: isTablet ? 26 : 22,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              constraints: BoxConstraints(minWidth: isTablet ? 70 : 60),
-              padding: EdgeInsets.symmetric(
-                horizontal: isTablet ? 24 : 20, 
-                vertical: isTablet ? 14 : 12,
-              ),
-              decoration: BoxDecoration(
-                gradient: quantidade > 0
-                    ? LinearGradient(
-                        colors: [cor, cor.withOpacity(0.85)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: quantidade > 0 ? null : cardWhite,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: quantidade > 0
-                    ? [
-                        BoxShadow(
-                          color: cor.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                border: quantidade == 0
-                    ? Border.all(color: Colors.grey.withOpacity(0.2), width: 1.5)
-                    : null,
-              ),
-              child: Text(
-                '$quantidade',
-                style: GoogleFonts.inter(
-                  color: quantidade > 0 ? Colors.white : textLight,
-                  fontWeight: FontWeight.w900,
-                  fontSize: isTablet ? 24 : 20,
-                  letterSpacing: 0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: estoque > quantidade ? onAdd : null,
-                child: Container(
-                  padding: EdgeInsets.all(isTablet ? 12 : 10),
-                  decoration: BoxDecoration(
-                    gradient: estoque > quantidade
-                        ? LinearGradient(
-                            colors: [
-                              cor.withOpacity(0.15),
-                              cor.withOpacity(0.1),
-                            ],
-                          )
-                        : null,
-                    color: estoque > quantidade ? null : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(14),
-                    border: estoque > quantidade
-                        ? Border.all(color: cor.withOpacity(0.3), width: 1.5)
-                        : null,
-                  ),
-                  child: Icon(
-                    Icons.add_rounded,
-                    color: estoque > quantidade ? cor : Colors.grey,
-                    size: isTablet ? 26 : 22,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        // Barra de progresso
-        if (quantidade > 0) ...[
-          SizedBox(height: isTablet ? 14 : 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: porcentagem),
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return LinearProgressIndicator(
-                  value: value,
-                  backgroundColor: Colors.grey.withOpacity(0.2),
-                  valueColor: AlwaysStoppedAnimation<Color>(cor),
-                  minHeight: isTablet ? 8 : 6,
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${(porcentagem * 100).toStringAsFixed(0)}% do estoque',
-            style: GoogleFonts.inter(
-              fontSize: isTablet ? 13 : 11,
-              color: textLight,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

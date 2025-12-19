@@ -1,6 +1,11 @@
 // lib/expedicao/carrinho_expedicao.dart
+import 'package:flutter/foundation.dart'; // Import necessário para ValueNotifier
+
 class CarrinhoExpedicao {
   static final Map<int, Map<String, int>> _itens = {};
+
+  // 🔥 NOVO: Um "dedo-duro" que avisa a tela quando o total muda
+  static final ValueNotifier<int> totalNotifier = ValueNotifier(0);
 
   static Map<int, Map<String, int>> get itens => Map.unmodifiable(_itens);
 
@@ -13,6 +18,7 @@ class CarrinhoExpedicao {
     } else {
       _itens[produtoId]!['a'] = (_itens[produtoId]!['a'] ?? 0) + 1;
     }
+    _atualizarNotificacao(); // 🔥
   }
 
   static void removerOuDiminuir(int produtoId, String tipo) {
@@ -28,9 +34,17 @@ class CarrinhoExpedicao {
     if ((mapa['f'] ?? 0) <= 0 && (mapa['a'] ?? 0) <= 0) {
       _itens.remove(produtoId);
     }
+    _atualizarNotificacao(); // 🔥
   }
 
-  static void limpar() => _itens.clear();
+  static void limpar() {
+    _itens.clear();
+    _atualizarNotificacao(); // 🔥
+  }
+
+  static void _atualizarNotificacao() {
+    totalNotifier.value = totalItens;
+  }
 
   static Map<int, Map<String, int>> get carrinhoParaEnvio => Map.from(_itens);
 }

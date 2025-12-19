@@ -1,11 +1,12 @@
 // lib/widgets/home_grid_view.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Para HapticFeedback
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
-import '../produto.dart'; // Importa a classe Produto
+import '../produto.dart';
 
 class HomeGridView extends StatelessWidget {
-  // Parâmetros de Dados e Lógica (recebidos do Orquestrador/State Holder)
+  // === DADOS E LÓGICA (Mantidos) ===
   final Map<String, List<Produto>> categoriasMap;
   final int totalFardos;
   final int totalAvulsas;
@@ -13,16 +14,18 @@ class HomeGridView extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final ValueChanged<String> onCategorySelected;
   
-  // Parâmetros de Animação e Layout
+  // === PARÂMETROS DE LAYOUT (Mantidos) ===
   final AnimationController shimmerController;
   final AnimationController pulseController;
   final double scaleFactor;
   final int Function(double) getCrossAxisCount;
   final double Function(int) getChildAspectRatio;
   
-  // Parâmetros de Serviço
-  final Map<String, Color> colors;
+  // === SERVIÇOS (Mantidos) ===
   final IconData Function(String) getCategoryIcon;
+  // O map 'colors' antigo será ignorado em favor da nova paleta Fire Mode,
+  // mas mantive no construtor para não quebrar quem chama o widget.
+  final Map<String, Color> colors; 
 
   const HomeGridView({
     super.key,
@@ -37,45 +40,32 @@ class HomeGridView extends StatelessWidget {
     required this.scaleFactor,
     required this.getCrossAxisCount,
     required this.getChildAspectRatio,
-    required this.colors,
+    required this.colors, // Mantido apenas para compatibilidade
     required this.getCategoryIcon,
   });
 
-  // Helpers para Cores (para simplificar o código de build)
-  Color get primaryOrange => colors['primaryOrange']!;
-  Color get lightOrange => colors['lightOrange']!;
-  Color get deepOrange => colors['deepOrange']!;
-  Color get accentBlue => colors['accentBlue']!;
-  Color get accentPurple => colors['accentPurple']!;
-  Color get lightGray => colors['lightGray']!;
-  Color get borderGray => colors['borderGray']!;
-  Color get textDark => colors['textDark']!;
-  Color get textLight => colors['textLight']!;
-  Color get cardShadow => colors['cardShadow']!;
-  Color get successGreen => colors['successGreen']!;
-  Color get warningOrange => colors['warningOrange']!;
-  Color get warningYellow => colors['warningYellow']!;
-  Color get zeroStock => colors['zeroStock']!;
-  Color get backgroundGradientStart => colors['backgroundGradientStart']!;
-  Color get backgroundGradientEnd => colors['backgroundGradientEnd']!;
+  // === PALETA FIRE MODE ===
+  static const Color pureBlack = Color(0xFF000000);
+  static const Color deepBlack = Color(0xFF0A0A0A);
+  static const Color cardBlack = Color(0xFF1A1A1A);
+  static const Color brightOrange = Color(0xFFFF4500);
+  static const Color neonOrange = Color(0xFFFF6B00);
+  static const Color softOrange = Color(0xFFFF8C42);
+  static const Color pureWhite = Color(0xFFFFFFFF);
+  static const Color grayText = Color(0xFFAAAAAA);
+  static const Color borderGray = Color(0xFF333333);
 
   // ===================================
-  // 🔨 WIDGET PRINCIPAL (VIEW DE GRID)
+  // 🔨 WIDGET PRINCIPAL
   // ===================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [backgroundGradientStart, backgroundGradientEnd],
-        ),
-      ),
+      color: pureBlack, // Fundo Totalmente Preto
       child: Column(
         children: [
-          // HEADER DE VISÃO GERAL
+          // HEADER DE VISÃO GERAL (Dark)
           _buildGeneralHeader(),
 
           // GRID DE CATEGORIAS
@@ -86,9 +76,9 @@ class HomeGridView extends StatelessWidget {
                     ? _buildEmptyState(context)
                     : RefreshIndicator(
                         onRefresh: onRefresh,
-                        color: primaryOrange,
-                        backgroundColor: Colors.white,
-                        strokeWidth: 3.5,
+                        color: pureBlack,
+                        backgroundColor: brightOrange, // Laranja no refresh
+                        strokeWidth: 3.0,
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             final crossAxisCount = getCrossAxisCount(constraints.maxWidth);
@@ -99,8 +89,8 @@ class HomeGridView extends StatelessWidget {
                               padding: EdgeInsets.all(padding),
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 24,
-                                mainAxisSpacing: 24,
+                                crossAxisSpacing: 20, // Espaçamento levemente reduzido
+                                mainAxisSpacing: 20,
                                 childAspectRatio: childAspectRatio,
                               ),
                               itemCount: categoriasMap.length,
@@ -110,9 +100,8 @@ class HomeGridView extends StatelessWidget {
                                 final totalItens = itens.fold(0, (s, p) => s + p.fardos + p.avulsas);
                                 final emEstoque = itens.where((p) => p.fardos > 0 || p.avulsas > 0).length;
 
-                                return _buildCategoriaCardModerno(
+                                return _buildCategoriaCardFire(
                                   categoria,
-                                  itens.length,
                                   totalItens,
                                   emEstoque,
                                   index,
@@ -129,21 +118,15 @@ class HomeGridView extends StatelessWidget {
   }
 
   // ===================================
-  // 🏗️ WIDGETS DE CONSTRUÇÃO
+  // 🏗️ HEADER FIRE MODE
   // ===================================
 
   Widget _buildGeneralHeader() {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: cardShadow,
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: deepBlack.withOpacity(0.8),
+        border: Border(bottom: BorderSide(color: borderGray, width: 1)),
       ),
       child: ClipRRect(
         child: BackdropFilter(
@@ -153,126 +136,74 @@ class HomeGridView extends StatelessWidget {
               24 * scaleFactor,
               32 * scaleFactor,
               24 * scaleFactor,
-              28 * scaleFactor,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white,
-                  Colors.white.withOpacity(0.95),
-                ],
-              ),
+              24 * scaleFactor,
             ),
             child: Row(
               children: [
-                // Ícone principal com animação
-                TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 600),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  curve: Curves.elasticOut,
-                  builder: (context, value, child) => Transform.scale(
-                    scale: value,
-                    child: Container(
-                      padding: EdgeInsets.all(18 * scaleFactor),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          // Removido 'const' pois cores são variáveis (embora estáticas)
-                          colors: [primaryOrange, deepOrange],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryOrange.withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.dashboard_rounded,
-                        color: Colors.white,
-                        size: 32 * scaleFactor,
-                      ),
+                // Ícone Principal (Dashboard)
+                Container(
+                  padding: EdgeInsets.all(16 * scaleFactor),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [brightOrange, neonOrange],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: brightOrange.withOpacity(0.4),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.dashboard_rounded,
+                    color: pureWhite,
+                    size: 28 * scaleFactor,
                   ),
                 ),
                 SizedBox(width: 20 * scaleFactor),
+                
+                // Textos do Header
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Gestão de Estoque',
+                        'Visão Geral',
                         style: GoogleFonts.poppins(
-                          fontSize: 28 * scaleFactor,
+                          fontSize: 26 * scaleFactor,
                           fontWeight: FontWeight.w700,
-                          color: textDark,
-                          letterSpacing: -0.5,
-                          height: 1.2,
+                          color: pureWhite,
+                          height: 1.1,
                         ),
                       ),
-                      SizedBox(height: 8 * scaleFactor),
+                      SizedBox(height: 6 * scaleFactor),
+                      
+                      // Chip de Resumo
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 12 * scaleFactor,
                           vertical: 6 * scaleFactor,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              primaryOrange.withOpacity(0.1),
-                              lightOrange.withOpacity(0.1),
-                            ],
-                          ),
+                          color: cardBlack,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: primaryOrange.withOpacity(0.2),
-                            width: 1.5,
-                          ),
+                          border: Border.all(color: borderGray),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.category_rounded,
-                              size: 16 * scaleFactor,
-                              color: primaryOrange,
-                            ),
-                            SizedBox(width: 6 * scaleFactor),
+                            Icon(Icons.inventory_2_rounded, size: 14 * scaleFactor, color: brightOrange),
+                            SizedBox(width: 8 * scaleFactor),
                             Text(
-                              '${categoriasMap.length} categorias',
-                              style: GoogleFonts.inter(
+                              '$totalFardos fardos  |  $totalAvulsas avulsas',
+                              style: GoogleFonts.poppins(
                                 fontSize: 13 * scaleFactor,
-                                color: primaryOrange,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(width: 12 * scaleFactor),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: primaryOrange.withOpacity(0.4),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            SizedBox(width: 12 * scaleFactor),
-                            Icon(
-                              Icons.inventory_2_rounded,
-                              size: 16 * scaleFactor,
-                              color: accentBlue,
-                            ),
-                            SizedBox(width: 6 * scaleFactor),
-                            Text(
-                              '$totalFardos fardos • $totalAvulsas avulsas',
-                              style: GoogleFonts.inter(
-                                fontSize: 13 * scaleFactor,
-                                color: accentBlue,
-                                fontWeight: FontWeight.w700,
+                                color: grayText,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -289,225 +220,145 @@ class HomeGridView extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoriaCardModerno(
+  // ===================================
+  // 🔥 CARDS DO GRID (FIRE MODE)
+  // ===================================
+
+  Widget _buildCategoriaCardFire(
     String categoria,
-    int totalProdutos,
     int totalItens,
     int emEstoque,
     int index,
   ) {
     final semEstoque = totalItens == 0;
     final baixoEstoque = totalItens > 0 && totalItens < 8;
-    final estoqueOk = !semEstoque && !baixoEstoque;
 
-    Color primaryColor = estoqueOk ? successGreen : (semEstoque ? this.primaryOrange : warningOrange);
-    Color secondaryColor = estoqueOk ? const Color(0xFF00D2AB) : (semEstoque ? lightOrange : warningOrange); 
+    // Cores (Mantidas)
+    Color mainColor = semEstoque ? grayText : (baixoEstoque ? softOrange : brightOrange);
+    
+    // Pegamos o ícone atual
+    IconData iconData = getCategoryIcon(categoria);
 
     return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 400 + (index * 60)),
+      duration: Duration(milliseconds: 400 + (index * 50)),
       tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutCubic,
+      curve: Curves.easeOutQuart,
       builder: (context, value, child) => Transform.translate(
-        offset: Offset(0, 40.0 * (1 - value)),
+        offset: Offset(0, 30.0 * (1 - value)),
         child: Opacity(opacity: value, child: child),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
         child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onCategorySelected(categoria);
+          },
           borderRadius: BorderRadius.circular(24),
-          onTap: () => onCategorySelected(categoria),
           child: Container(
+            clipBehavior: Clip.antiAlias, // Importante para cortar o ícone vazado
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, Colors.white.withOpacity(0.95)],
-              ),
+              color: cardBlack,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: primaryColor.withOpacity(0.3),
-                width: 2,
+                color: semEstoque ? borderGray : borderGray.withOpacity(0.5),
+                width: 1,
               ),
               boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withOpacity(0.15),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  blurRadius: 8,
-                  offset: const Offset(-4, -4),
-                ),
+                if (!semEstoque)
+                  BoxShadow(
+                    color: mainColor.withOpacity(0.15), // Glow reduzido e mais difuso
+                    blurRadius: 25,
+                    offset: const Offset(0, 8),
+                  ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -50,
-                    right: -50,
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            primaryColor.withOpacity(0.1),
-                            primaryColor.withOpacity(0.0),
-                          ],
-                        ),
+            child: Stack(
+              children: [
+                // 1. ÍCONE DE FUNDO (WATERMARK)
+                // Ele fica gigante, rotacionado e no canto direito inferior
+                Positioned(
+                  right: -15,
+                  bottom: -15,
+                  child: Transform.rotate(
+                    angle: -0.2, // Leve inclinação
+                    child: Icon(
+                      iconData,
+                      size: 100 * scaleFactor, // MUITO GRANDE
+                      color: mainColor.withOpacity(0.07), // QUASE TRANSPARENTE
+                    ),
+                  ),
+                ),
+
+                // 2. CONTEÚDO
+                Padding(
+                  padding: EdgeInsets.all(20 * scaleFactor),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Cabeçalho: Badge de Status (Se necessário) e Título
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              categoria,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                fontSize: 18 * scaleFactor, // Aumentei a fonte
+                                fontWeight: FontWeight.w700,
+                                color: pureWhite,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                          if (baixoEstoque || semEstoque)
+                             Container(
+                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                               decoration: BoxDecoration(
+                                 color: semEstoque ? borderGray : brightOrange.withOpacity(0.2),
+                                 borderRadius: BorderRadius.circular(6),
+                               ),
+                               child: Text(
+                                 semEstoque ? 'ZERADO' : 'BAIXO',
+                                 style: GoogleFonts.poppins(
+                                   fontSize: 10 * scaleFactor,
+                                   fontWeight: FontWeight.w900,
+                                   color: semEstoque ? grayText : brightOrange,
+                                 ),
+                               ),
+                             ),
+                        ],
                       ),
-                    ),
+
+                      const Spacer(), // Empurra os stats para baixo
+
+                      // Rodapé: Estatísticas Limpas
+                      Row(
+                        children: [
+                          // Total
+                          _buildCleanStat(
+                             value: '$totalItens', 
+                             label: 'Total', 
+                             color: grayText
+                          ),
+                          
+                          SizedBox(width: 16 * scaleFactor),
+                          
+                          // Ativos
+                          _buildCleanStat(
+                             value: '$emEstoque', 
+                             label: 'Ativos', 
+                             color: semEstoque ? grayText : brightOrange
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  
-                  Padding(
-                    padding: EdgeInsets.all(18 * scaleFactor),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Ícone Principal da Categoria
-                            Container(
-                              padding: EdgeInsets.all(12 * scaleFactor),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [primaryColor, secondaryColor],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow( // CORRIGIDO: Removido 'BoxBoxShadow'
-                                    color: primaryColor.withOpacity(0.4),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                getCategoryIcon(categoria),
-                                color: Colors.white,
-                                size: 24 * scaleFactor,
-                              ),
-                            ),
-                            
-                            // Badge de Status (Pulsação)
-                            if (semEstoque || baixoEstoque)
-                              AnimatedBuilder(
-                                animation: pulseController,
-                                builder: (context, child) => Transform.scale(
-                                  scale: 1.0 + (pulseController.value * 0.1),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8 * scaleFactor,
-                                      vertical: 5 * scaleFactor,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [primaryColor, secondaryColor],
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: primaryColor.withOpacity(0.4),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      semEstoque ? Icons.warning_rounded : Icons.info_rounded,
-                                      color: Colors.white,
-                                      size: 14 * scaleFactor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        
-                        SizedBox(height: 12 * scaleFactor),
-                        
-                        // Título da Categoria
-                        Flexible(
-                          child: Text(
-                            categoria,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16 * scaleFactor,
-                              fontWeight: FontWeight.w700,
-                              color: textDark,
-                              letterSpacing: -0.3,
-                              height: 1.2,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        
-                        SizedBox(height: 12 * scaleFactor),
-                        
-                        // Cartão de Estatísticas
-                        Container(
-                          padding: EdgeInsets.all(12 * scaleFactor),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                lightGray,
-                                lightGray.withOpacity(0.5),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: borderGray.withOpacity(0.5),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildStatRowModerno(
-                                '$totalItens',
-                                'Total Itens',
-                                Icons.inventory_2_rounded,
-                                semEstoque ? zeroStock : textDark,
-                              ),
-                              SizedBox(height: 8 * scaleFactor),
-                              Container(
-                                height: 1.5,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      borderGray.withOpacity(0.5),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 8 * scaleFactor),
-                              _buildStatRowModerno(
-                                '$emEstoque',
-                                'Em Estoque',
-                                Icons.check_circle_rounded,
-                                primaryColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -515,78 +366,77 @@ class HomeGridView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatRowModerno(String value, String label, IconData icon, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // Widget auxiliar para stats mais limpos (sem ícones pequenos)
+  Widget _buildCleanStat({required String value, required String label, required Color color}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(5 * scaleFactor),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Icon(icon, size: 14 * scaleFactor, color: color),
-              ),
-              SizedBox(width: 8 * scaleFactor),
-              Flexible(
-                child: Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 11 * scaleFactor,
-                    fontWeight: FontWeight.w600,
-                    color: textLight,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 20 * scaleFactor, // Número grande
+            fontWeight: FontWeight.w600,
+            color: color,
+            height: 1.0,
           ),
         ),
-        SizedBox(width: 8 * scaleFactor),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 8 * scaleFactor,
-            vertical: 3 * scaleFactor,
-          ),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 14 * scaleFactor,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11 * scaleFactor,
+            color: grayText.withOpacity(0.7),
           ),
         ),
       ],
     );
   }
 
+  Widget _buildMiniStat(String value, String label, IconData icon, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 12 * scaleFactor, color: color.withOpacity(0.7)),
+        SizedBox(width: 6 * scaleFactor),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 13 * scaleFactor,
+                fontWeight: FontWeight.w700,
+                color: pureWhite,
+                height: 1.0,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 10 * scaleFactor,
+                color: grayText,
+                height: 1.0,
+              ),
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
   // ===================================
-  // 👻 SHIMMER E EMPTY STATE
+  // 💀 SHIMMER LOADING (DARK MODE)
   // ===================================
 
   Widget _buildShimmerGrid(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = getCrossAxisCount(constraints.maxWidth);
-        final childAspectRatio = getChildAspectRatio(crossAxisCount);
-        final padding = constraints.maxWidth < 500 ? 20.0 : 28.0;
-
         return GridView.builder(
-          padding: EdgeInsets.all(padding),
+          padding: EdgeInsets.all(constraints.maxWidth < 500 ? 20.0 : 28.0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
-            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+            childAspectRatio: getChildAspectRatio(crossAxisCount),
           ),
           itemCount: 6,
           itemBuilder: (context, i) => _shimmerCard(),
@@ -599,123 +449,97 @@ class HomeGridView extends StatelessWidget {
     return AnimatedBuilder(
       animation: shimmerController,
       builder: (context, child) => Container(
-        padding: EdgeInsets.all(20 * scaleFactor),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBlack,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: borderGray.withOpacity(0.5), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: cardShadow,
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          border: Border.all(color: borderGray),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _shimmerBox(52.0, 52.0, 16.0),
-                _shimmerBox(36.0, 28.0, 10.0),
-              ],
-            ),
-            SizedBox(height: 16 * scaleFactor),
-            _shimmerBox(140.0, 20.0, 10.0),
-            const Spacer(),
-            _shimmerBox(double.infinity, 80.0, 16.0),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _shimmerBox(double w, double h, [double r = 8.0]) {
-    final effectiveW = w * scaleFactor;
-    final effectiveH = h * scaleFactor;
-
-    return AnimatedBuilder(
-      animation: shimmerController,
-      builder: (context, child) => Container(
-        width: effectiveW.isFinite ? effectiveW : null,
-        height: effectiveH.isFinite ? effectiveH : null,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(r),
-          gradient: LinearGradient(
-            begin: Alignment(-1.0 + shimmerController.value * 2, 0),
-            end: Alignment(1.0 + shimmerController.value * 2, 0),
-            colors: [
-              borderGray.withOpacity(0.3),
-              lightGray,
-              borderGray.withOpacity(0.3),
+        child: Padding(
+          padding: EdgeInsets.all(18 * scaleFactor),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _shimmerBox(45, 45, 14),
+                  _shimmerBox(40, 20, 8),
+                ],
+              ),
+              Spacer(),
+              _shimmerBox(100, 20, 6),
+              SizedBox(height: 10),
+              _shimmerBox(double.infinity, 40, 12),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _shimmerBox(double w, double h, double r) {
+    return Container(
+      width: w * scaleFactor,
+      height: h * scaleFactor,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(r),
+        gradient: LinearGradient(
+          begin: Alignment(-1.0 + shimmerController.value * 2, 0),
+          end: Alignment(1.0 + shimmerController.value * 2, 0),
+          colors: [
+            deepBlack,
+            Color(0xFF2A2A2A), // Um cinza um pouco mais claro para o brilho
+            deepBlack,
+          ],
+        ),
+      ),
+    );
+  }
   
+  // ===================================
+  // 📭 EMPTY STATE (DARK)
+  // ===================================
+
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          TweenAnimationBuilder<double>(
-            duration: const Duration(milliseconds: 600),
-            tween: Tween(begin: 0.0, end: 1.0),
-            curve: Curves.elasticOut,
-            builder: (context, value, child) => Transform.scale(
-              scale: value,
-              child: Container(
-                padding: EdgeInsets.all(40 * scaleFactor),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      lightGray,
-                      lightGray.withOpacity(0.5),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: borderGray.withOpacity(0.5),
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cardShadow,
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  size: 72 * scaleFactor,
-                  color: textLight.withOpacity(0.6),
-                ),
-              ),
+          Container(
+            padding: EdgeInsets.all(30 * scaleFactor),
+            decoration: BoxDecoration(
+              color: cardBlack,
+              shape: BoxShape.circle,
+              border: Border.all(color: borderGray),
+              boxShadow: [
+                 BoxShadow(
+                   color: brightOrange.withOpacity(0.05),
+                   blurRadius: 30,
+                   spreadRadius: 10,
+                 )
+              ]
+            ),
+            child: Icon(
+              Icons.inventory_2_outlined,
+              size: 60 * scaleFactor,
+              color: borderGray,
             ),
           ),
-          SizedBox(height: 32 * scaleFactor),
+          SizedBox(height: 24 * scaleFactor),
           Text(
-            'Nenhuma categoria encontrada',
+            'Nada por aqui',
             style: GoogleFonts.poppins(
-              fontSize: 24 * scaleFactor,
+              fontSize: 22 * scaleFactor,
               fontWeight: FontWeight.w700,
-              color: textDark,
+              color: pureWhite,
             ),
           ),
-          SizedBox(height: 12 * scaleFactor),
+          SizedBox(height: 8 * scaleFactor),
           Text(
-            'Adicione produtos ou verifique a conexão',
-            style: GoogleFonts.inter(
-              fontSize: 15 * scaleFactor,
-              color: textLight,
-              fontWeight: FontWeight.w500,
+            'Adicione produtos para começar.',
+            style: GoogleFonts.poppins(
+              fontSize: 14 * scaleFactor,
+              color: grayText,
             ),
           ),
         ],
