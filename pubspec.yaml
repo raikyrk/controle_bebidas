@@ -1,6 +1,6 @@
 name: ao_gosto_estoque
 description: Controle de estoque de bebidas - Fardos e Avulsas
-version: 1.0.2+4
+version: 1.0.2+5
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
